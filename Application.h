@@ -16,6 +16,7 @@
 #define SCREEN_ID_ALARM     1
 #define SCREEN_ID_TIMER     2
 #define SCREEN_ID_STOPWATCH 3
+#define SCREEN_ID_SETTINGS  4
 
 typedef struct {
     int selectedScreen;
@@ -27,6 +28,10 @@ typedef struct {
     bool irRxOn;
     bool irRecieved;
     bool show_time_only;
+    int lang;
+    int font;
+    int tntMode;
+    int ir_detection;
 } App_Global_Data;
 
 #define APP_TIMER_STATE_OFF   0

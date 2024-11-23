@@ -2,7 +2,7 @@
 #include "F0CustomFonts.h"
 extern F0App* FApp;
 
-App_Global_Data AppGlobal = {SCREEN_ID_TIME, 5, 0, 2, 0, 0, 0, 0, 0};
+App_Global_Data AppGlobal = {SCREEN_ID_TIME, 5, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 App_Alarm_Data AppAlarm = {1, 8, 0, 8, 0, 0, 0};
 App_Timer_Data AppTimer = {2, 300, 300, APP_TIMER_STATE_OFF};
 App_Stopwatch_Data AppStopwatch = {0, 0, 0};
@@ -90,6 +90,7 @@ void Draw(Canvas* canvas, void* ctx) {
         curr_dt.minute,
         curr_dt.second);
     //uint8_t weekday; /**< Current weekday: 1-7 */
+
     snprintf(
         date_string,
         TIME_STR_SIZE,
@@ -97,6 +98,7 @@ void Draw(Canvas* canvas, void* ctx) {
         curr_dt.day,
         curr_dt.month,
         curr_dt.year);
+
     snprintf(
         timer_string,
         TIME_STR_SIZE,
@@ -106,7 +108,7 @@ void Draw(Canvas* canvas, void* ctx) {
         AppTimer.count % 60);
     snprintf(alarm_string, TIME_STR_SIZE, "%.2d:%.2d", AppAlarm.sH, AppAlarm.sM);
 
-    if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { // ЧАСЫ С КУКУХОЙ
+    if(AppGlobal.selectedScreen == SCREEN_ID_TIME) {
         if(AppGlobal.dspBrightnessBarFrames)
             elements_progress_bar_vertical(
                 canvas, 121, 10, 40, (float)(AppGlobal.brightness / 100.f));
@@ -114,12 +116,12 @@ void Draw(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
 
         if(!AppGlobal.show_time_only) {
-            //          canvas_set_font(canvas, FontSecondary);
+            //canvas_set_font(canvas, FontSecondary);
             canvas_set_custom_u8g2_font(canvas, quadro7);
             elements_button_left(canvas, "Буд");
             elements_button_center(canvas, "Сек");
             elements_button_right(canvas, "Тмр");
-            //            if (AppGlobal.irRxOn) canvas_draw_icon(canvas, 0, 22, &I_IR_On);
+            //if (AppGlobal.irRxOn) canvas_draw_icon(canvas, 0, 22, &I_IR_On);
             canvas_draw_str_aligned(canvas, 128, 0, AlignRight, AlignTop, date_string);
             if(AppAlarm.state)
                 canvas_draw_str_aligned(canvas, 0, 44, AlignLeft, AlignTop, alarm_string);
@@ -226,6 +228,13 @@ void Draw(Canvas* canvas, void* ctx) {
         } else
             elements_button_center(canvas, "Вкл");
     }
+
+    if(AppGlobal.selectedScreen == SCREEN_ID_SETTINGS) {
+        canvas_set_custom_u8g2_font(canvas, quadro7);
+        canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, "буквы латыни");
+        canvas_draw_str_aligned(canvas, 0, 10, AlignLeft, AlignTop, "базовый шрифт");
+        canvas_draw_str_aligned(canvas, 0, 20, AlignLeft, AlignTop, "фотосенсор");
+    }
 }
 
 int KeyProc(int type, int key) {
@@ -297,6 +306,14 @@ int KeyProc(int type, int key) {
             }
             if(ss == SCREEN_ID_ALARM) {
                 AppAlarmKeyBack();
+                return 0;
+            }
+            if(ss == SCREEN_ID_TIME) {
+                //AppGlobal.selectedScreen = SCREEN_ID_SETTINGS;
+                return 0;
+            }
+            if(ss == SCREEN_ID_SETTINGS) {
+                AppGlobal.selectedScreen = SCREEN_ID_TIME;
                 return 0;
             }
             return 0;
@@ -680,18 +697,30 @@ void LoadParams() {
     storage_common_migrate(storage, EXT_PATH("apps/Tools/alarmatik.bin"), SAVING_FILENAME);
 
     File* file = storage_file_alloc(storage);
+    char ver = 0;
     if(storage_file_open(file, SAVING_FILENAME, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        storage_file_read(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
-        storage_file_read(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
-        storage_file_read(file, &AppAlarm.state, sizeof(AppAlarm.state));
-        storage_file_read(file, &AppGlobal.brightness, sizeof(AppGlobal.brightness));
-        storage_file_read(file, &AppTimer.expected_count, sizeof(AppTimer.expected_count));
+        storage_file_read(file, &ver, sizeof(ver));
+        if(ver > 0) {
+            storage_file_read(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
+            storage_file_read(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
+            storage_file_read(file, &AppAlarm.state, sizeof(AppAlarm.state));
+            storage_file_read(file, &AppGlobal.brightness, sizeof(AppGlobal.brightness));
+            storage_file_read(file, &AppTimer.expected_count, sizeof(AppTimer.expected_count));
+            storage_file_read(file, &AppGlobal.lang, sizeof(AppGlobal.lang));
+            storage_file_read(file, &AppGlobal.font, sizeof(AppGlobal.font));
+            storage_file_read(file, &AppGlobal.tntMode, sizeof(AppGlobal.tntMode));
+            storage_file_read(file, &AppGlobal.ir_detection, sizeof(AppGlobal.ir_detection));
+        }
     } else {
         AppAlarm.sH = 8;
         AppAlarm.sM = 0;
         AppAlarm.state = APP_ALARM_STATE_OFF;
         AppGlobal.brightness = 5;
         AppTimer.expected_count = 300;
+        AppGlobal.lang = 0;
+        AppGlobal.font = 0;
+        AppGlobal.tntMode = 0;
+        AppGlobal.ir_detection = 0;
     }
 
     storage_file_close(file);
@@ -711,12 +740,18 @@ void LoadParams() {
 void SaveParams() {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
+    char ver = 1;
     if(storage_file_open(file, SAVING_FILENAME, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, &ver, sizeof(ver));
         storage_file_write(file, &AppAlarm.sH_old, sizeof(AppAlarm.sH_old));
         storage_file_write(file, &AppAlarm.sM_old, sizeof(AppAlarm.sM_old));
         storage_file_write(file, &AppAlarm.state, sizeof(AppAlarm.state));
         storage_file_write(file, &AppGlobal.brightness, sizeof(AppGlobal.brightness));
         storage_file_write(file, &AppTimer.expected_count, sizeof(AppTimer.expected_count));
+        storage_file_write(file, &AppGlobal.lang, sizeof(AppGlobal.lang));
+        storage_file_write(file, &AppGlobal.font, sizeof(AppGlobal.font));
+        storage_file_write(file, &AppGlobal.tntMode, sizeof(AppGlobal.tntMode));
+        storage_file_write(file, &AppGlobal.ir_detection, sizeof(AppGlobal.ir_detection));
     }
 
     storage_file_close(file);
