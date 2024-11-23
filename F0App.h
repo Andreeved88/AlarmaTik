@@ -10,7 +10,7 @@
 #include <notification/notification_messages.h>
 #include <notification/notification_app.h>
 #include <storage/storage.h>
-//#include <infrared_worker.h>
+#include <infrared_worker.h>
 
 #include "Application.h"
 

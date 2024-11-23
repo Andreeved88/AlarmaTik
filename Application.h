@@ -1,5 +1,5 @@
 #include "alarmatik_icons.h"
-
+#include "lang.h"
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
@@ -10,16 +10,20 @@
 #define TIME_STR_SIZE         30
 
 #define TIME_POS_X 10
-#define TIME_POS_Y 45
+#define TIME_POS_Y 47
 
 #define SCREEN_ID_TIME      0
 #define SCREEN_ID_ALARM     1
 #define SCREEN_ID_TIMER     2
 #define SCREEN_ID_STOPWATCH 3
-#define SCREEN_ID_SETTINGS  4
+#define SCREEN_ID_CONFIG    4
+
+#define FONT_ID_INT 0
+#define FONT_ID_EXT 1
 
 typedef struct {
     int selectedScreen;
+    int prevScreen;
     int brightness;
     int dspBrightnessBarFrames;
     int dspBrightnessBarDisplayFrames;
@@ -50,6 +54,10 @@ typedef struct {
 #define APP_ALARM_STATE_ON    1
 #define APP_ALARM_STATE_SLEEP 2
 #define APP_ALARM_STATE_BZZZ  3
+
+typedef struct {
+    int selected;
+} App_Config_Data;
 
 typedef struct {
     int selected;
@@ -112,6 +120,9 @@ int KeyProc(int type, int key);
 void notification_beep_once();
 void notification_off();
 void notification_timeup();
+void showScreen(int id);
+void ApplyFont(Canvas* c);
+char* getStr(int id);
 void AppTimeKeyUp();
 void AppTimeKeyDown();
 void AppStopwatchToggle();
@@ -127,7 +138,12 @@ void AppAlarmKeyUp();
 void AppAlarmKeyDown();
 void AppAlarmKeyOk();
 void AppAlarmKeyBack();
+void AppConfigKeyUp();
+void AppConfigKeyDown();
+void AppConfigKeyLeft();
+void AppConfigKeyRight();
 void OnTimerTick();
+void SetTNT(int mode);
 void SetIrBlink(bool state);
 void SetIR_rx(bool state);
 void SetRing(bool state);
