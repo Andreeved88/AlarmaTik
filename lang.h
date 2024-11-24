@@ -23,3 +23,4 @@
 #define STR_ALARM_SLEEP       22
 #define STR_STOPWATCH_ON      23
 #define STR_TIMER_ON          24
+#define STR_TNT_ACTION        25
