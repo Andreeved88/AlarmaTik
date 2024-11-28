@@ -2,11 +2,12 @@
 #include "F0CustomFonts.h"
 extern F0App* FApp;
 
+#define DEVB 0
 char* CaptionsRus[] = {"Выкл",  "Вкл",         "Сброс",        "Пуск", "Стоп",    "Lang / Язык",
                        "Рус",   "Eng",         "Пакет рун",    "База", "Система", "TNT",
                        "БЗЗЗТ", "ВУ на 7[C3]", "Фотодетектор", "Вкл",  "Выкл",    "Буд",
                        "Сек",   "Тмр",         "Выкл",         "Вкл",  "Спать",   "Пуск",
-                       "Пуск",  "Режим"};
+                       "Пуск",  "Режим",       "Настройка"};
 
 char* CaptionsEng[] = {
     "Off",
@@ -34,7 +35,8 @@ char* CaptionsEng[] = {
     "Sleep",
     "Start",
     "Start",
-    "Action"};
+    "Action",
+    "Settings"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -330,8 +332,10 @@ void Draw(Canvas* canvas, void* ctx) {
         else
             canvas_draw_str_aligned(
                 canvas, 125, y, AlignRight, AlignTop, getStr(STR_CONF_FONT_EXT));
+        if(!DEVB) return;
         y += 13;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_CONF_IRMOTDET));
+
         if(AppGlobal.ir_detection == 0)
             canvas_draw_str_aligned(
                 canvas, 125, y, AlignRight, AlignTop, getStr(STR_CONF_IRMOTDET_OFF));
@@ -359,6 +363,7 @@ void Draw(Canvas* canvas, void* ctx) {
             if(AppAlarm.tntMode == 1) str_id = STR_CONF_TNT_PC3;
         }
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id));
+        if(DEVB) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
 }
 
@@ -570,32 +575,6 @@ int KeyProc(int type, int key) {
         }
     }
     return 0;
-}
-
-void AppTNTKeyUp() {
-    if(AppTNT.selected == 0)
-        AppTNT.selected = APP_TNT_LINES - 1;
-    else
-        AppTNT.selected--;
-}
-void AppTNTKeyDown() {
-    AppTNT.selected++;
-    if(AppTNT.selected == APP_TNT_LINES) AppTNT.selected = 0;
-}
-void AppTNTKeyLeft() {
-    if(AppTNT.selected == 0) {
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode = 0;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode = 0;
-    }
-}
-void AppTNTKeyRight() {
-    if(AppTNT.selected == 0) {
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode = 1;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode = 1;
-    }
-}
-
-void AppTNTKeyOk() {
 }
 
 void AppTimeKeyUp() {
@@ -831,14 +810,14 @@ void AppAlarmKeyBack() {
 
 void AppConfigKeyUp() {
     if(AppConfig.selected == 0)
-        AppConfig.selected = APP_CONFIG_LINES - 1;
+        AppConfig.selected = APP_CONFIG_LINES + DEVB - 1;
     else
         AppConfig.selected--;
 }
 
 void AppConfigKeyDown() {
     AppConfig.selected++;
-    if(AppConfig.selected == APP_CONFIG_LINES) AppConfig.selected = 0;
+    if(AppConfig.selected == APP_CONFIG_LINES + DEVB) AppConfig.selected = 0;
 }
 
 void AppConfigKeyLeft() {
@@ -865,10 +844,36 @@ void AppConfigKeyRight() {
     }
 }
 
+void AppTNTKeyUp() {
+    if(AppTNT.selected == 0)
+        AppTNT.selected = APP_TNT_LINES - 1;
+    else
+        AppTNT.selected--;
+}
+void AppTNTKeyDown() {
+    AppTNT.selected++;
+    if(AppTNT.selected == APP_TNT_LINES) AppTNT.selected = 0;
+}
+void AppTNTKeyLeft() {
+    if(AppTNT.selected == 0) {
+        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode = 0;
+        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode = 0;
+    }
+}
+void AppTNTKeyRight() {
+    if(AppTNT.selected == 0) {
+        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode = 1;
+        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode = 1;
+    }
+}
+
+void AppTNTKeyOk() {
+}
+
 void OnTimerTick() {
     SetScreenBacklightBrightness(AppGlobal.brightness);
     if(AppGlobal.ir_detection) {
-        if(AppGlobal.irCount > 2) AppGlobal.irRecieved = 1;
+        if(AppGlobal.irCount > 1) AppGlobal.irRecieved = 1;
         AppGlobal.irCount = 0;
     }
     if(AppGlobal.dspBrightnessBarFrames > 0) AppGlobal.dspBrightnessBarFrames--;
@@ -912,10 +917,13 @@ void OnTimerTick() {
 }
 
 void SetTNTmode_1(int state) {
-    if(state == 1)
+    if(state == 1) {
         furi_hal_gpio_write(&gpio_ext_pc3, 1);
-    else
+        SetLED(0, 160, 160, 1);
+    } else {
         furi_hal_gpio_write(&gpio_ext_pc3, 0);
+        ResetLED();
+    }
 }
 
 void SetIrBlink(bool state) {
@@ -983,8 +991,6 @@ void LoadParams() {
     AppAlarm.sM_old = AppAlarm.sM;
     AppTimer.count = AppTimer.expected_count;
     UpdateView();
-    //    SetIR_rx(1);
-    //  infrared_worker_rx_start(worker);
 }
 
 void SaveParams() {

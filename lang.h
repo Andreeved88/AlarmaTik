@@ -24,3 +24,4 @@
 #define STR_STOPWATCH_ON      23
 #define STR_TIMER_ON          24
 #define STR_TNT_ACTION        25
+#define STR_TNT_SETTINGS      26

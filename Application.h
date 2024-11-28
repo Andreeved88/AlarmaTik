@@ -58,7 +58,7 @@ typedef struct {
 #define APP_ALARM_STATE_SLEEP 2
 #define APP_ALARM_STATE_BZZZ  3
 
-#define APP_CONFIG_LINES 3
+#define APP_CONFIG_LINES 2
 #define APP_TNT_LINES    1
 typedef struct {
     int selected;
