@@ -61,7 +61,7 @@ typedef struct {
 #define APP_ALARM_STATE_SLEEP 2
 #define APP_ALARM_STATE_BZZZ  3
 
-#define APP_CONFIG_LINES 2
+#define APP_CONFIG_LINES 3
 #define APP_TNT_LINES    2
 typedef struct {
     int selected;
@@ -167,7 +167,6 @@ void AppConfigKeyLeft();
 void AppConfigKeyRight();
 void OnTimerTick();
 void SetTNTmode2(int state);
-void SetIrBlink(bool state);
 void SetIR_rx(bool state);
 void SetRing(bool state);
 void LoadParams();

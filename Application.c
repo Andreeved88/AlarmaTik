@@ -316,7 +316,6 @@ void Draw(Canvas* canvas, void* ctx) {
         else
             canvas_draw_str_aligned(
                 canvas, 125, y, AlignRight, AlignTop, getStr(STR_CONF_FONT_EXT));
-        if(!DEVB) return;
         y += 13;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_CONF_IRMOTDET));
 
@@ -806,14 +805,14 @@ void AppAlarmKeyBack() {
 
 void AppConfigKeyUp() {
     if(AppConfig.selected == 0)
-        AppConfig.selected = APP_CONFIG_LINES + DEVB - 1;
+        AppConfig.selected = APP_CONFIG_LINES - 1;
     else
         AppConfig.selected--;
 }
 
 void AppConfigKeyDown() {
     AppConfig.selected++;
-    if(AppConfig.selected == APP_CONFIG_LINES + DEVB) AppConfig.selected = 0;
+    if(AppConfig.selected == APP_CONFIG_LINES) AppConfig.selected = 0;
 }
 
 void AppConfigKeyLeft() {
@@ -878,7 +877,6 @@ void OnTimerTick() {
     SetScreenBacklightBrightness(AppGlobal.brightness);
     if(AppGlobal.dspBrightnessBarFrames > 0) AppGlobal.dspBrightnessBarFrames--;
     if(AppGlobal.ringing) { //если гудит
-        SetIrBlink(1);
         if(AppGlobal.irRecieved) { //рукой махали - считай нажали взад
             SetRing(0);
             AppGlobal.irCount = 0;
@@ -924,19 +922,6 @@ void SetTNTmode2(int state) {
     } else {
         furi_hal_gpio_write(&gpio_ext_pc3, 0);
         ResetLED();
-    }
-}
-
-void SetIrBlink(bool state) {
-    if(!state) {
-        furi_hal_gpio_write(&gpio_infrared_tx, 0);
-        return;
-    }
-    for(int i = 0; i < 4; i++) {
-        furi_delay_us(28); //20 us = 50000hz,
-        furi_hal_gpio_write(&gpio_infrared_tx, 1);
-        furi_delay_us(28);
-        furi_hal_gpio_write(&gpio_infrared_tx, 0);
     }
 }
 
