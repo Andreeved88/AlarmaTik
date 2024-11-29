@@ -5,11 +5,11 @@ App(
     entry_point="F0App_entry",
     requires=["gui"],
     stack_size=1 * 1024,
-    fap_icon="Icon.png",
+    fap_icon="F0Icon.png",
     fap_category="Tools",
     fap_icon_assets="icons",
     fap_author="@Andreeved88",
     fap_weburl="https://github.com/Andreeved88/AlarmaTik",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Сlock with advanced functionality",
 )

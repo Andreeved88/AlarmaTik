@@ -3,8 +3,8 @@
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
-#define CFG_VERSION           3
-#define CLOCK_RFC_DATE_FORMAT "%.2d.%.2d.%.4d"
+#define CFG_VERSION           4
+#define CLOCK_RFC_DATE_FORMAT "%s %.2d.%.2d.%.4d"
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define TIMER_TIME_FORMAT     "%02ld:%02ld:%02ld"
 #define MMSS_TIME_FORMAT      "%02ld:%02ld"
@@ -50,7 +50,10 @@ typedef struct {
     int32_t count;
     int32_t expected_count;
     int state;
-    int tntMode;
+    int tntMode1;
+    int tntMode1_param;
+    int tntMode2;
+    int tntMode2_param;
 } App_Timer_Data;
 
 #define APP_ALARM_STATE_OFF   0
@@ -59,7 +62,7 @@ typedef struct {
 #define APP_ALARM_STATE_BZZZ  3
 
 #define APP_CONFIG_LINES 2
-#define APP_TNT_LINES    1
+#define APP_TNT_LINES    2
 typedef struct {
     int selected;
 } App_Config_Data;
@@ -76,7 +79,10 @@ typedef struct {
     int sM_old;
     int state;
     bool system_state;
-    int tntMode;
+    int tntMode1;
+    int tntMode1_param;
+    int tntMode2;
+    int tntMode2_param;
 } App_Alarm_Data;
 
 typedef struct {
@@ -160,7 +166,7 @@ void AppConfigKeyDown();
 void AppConfigKeyLeft();
 void AppConfigKeyRight();
 void OnTimerTick();
-void SetTNTmode_1(int state);
+void SetTNTmode2(int state);
 void SetIrBlink(bool state);
 void SetIR_rx(bool state);
 void SetRing(bool state);
