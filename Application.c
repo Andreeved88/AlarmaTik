@@ -3,18 +3,17 @@
 extern F0App* FApp;
 
 #define DEVB 0
-char* CaptionsRus[] = {"[0]",         "Выкл",        "Вкл",         "Сброс",     "Пуск", "Стоп",
-                       "Lang / Язык", "Рус",         "Eng",         "Пакет рун", "База", "Система",
-                       "БЗЗЗТ",       "ВУ на 7[C3]", "ИК приёмник", "Буд",       "Сек",  "Тмр",
-                       "Спать",       "Режим",       "Настройка",   "Пнд",       "Втр",  "Срд",
-                       "Чтр",         "Птн",         "Сбт",         "Вск"};
+char* CaptionsRus[] = {
+    "[0]", "Выкл",      "Вкл",   "Сброс",   "Пуск",      "Стоп",        "Lang / Язык", "Рус",
+    "Eng", "Пакет рун", "База",  "Система", "БЗЗЗТ",     "ВУ на 7[C3]", "ИК приёмник", "Буд",
+    "Сек", "Тмр",       "Спать", "Режим",   "Настр",     "Пнд",         "Втр",         "Срд",
+    "Чтр", "Птн",       "Сбт",   "Вск",     "Приоритет", "Встроенный",  "Внешний",     "Равный"};
 
-char* CaptionsEng[] = {"[0]",      "Off",         "On",    "Reset",         "Start",
-                       "Stop",     "Lang / Язык", "Рус",   "Eng",           "Font",
-                       "Internal", "System",      "BZZZT", "HIGH at 7[C3]", "IR reciever",
-                       "Alarm",    "SW",          "Timer", "Sleep",         "Action",
-                       "Settings", "Mon",         "Tue",   "Wed",           "Thr",
-                       "Fri",      "Sat",         "Sun"};
+char* CaptionsEng[] = {
+    "[0]", "Off",   "On",       "Reset",  "Start",     "Stop",          "Lang / Язык", "Рус",
+    "Eng", "Font",  "Internal", "System", "BZZZT",     "HIGH at 7[C3]", "IR reciever", "Alarm",
+    "SW",  "Timer", "Sleep",    "Action", "Set",       "Mon",           "Tue",         "Wed",
+    "Thr", "Fri",   "Sat",      "Sun",    "Приоритет", "Встроенный",    "Внешний",     "Равный"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -34,6 +33,7 @@ App_Global_Data AppGlobal = {
 
 App_Alarm_Data AppAlarm = {
     .selected = 1,
+    .selectedExt = 0,
     .sH = 6,
     .sH_old = 0,
     .sM = 30,
@@ -43,10 +43,12 @@ App_Alarm_Data AppAlarm = {
     .tntMode1 = 0,
     .tntMode1_param = 0,
     .tntMode2 = 0,
-    .tntMode2_param = 0};
+    .tntMode2_param = 0,
+    .prior = 0};
 
 App_Timer_Data AppTimer = {
     .selected = 2,
+    .selectedExt = 0,
     .count = 300,
     .expected_count = 300,
     .state = APP_TIMER_STATE_OFF,
@@ -56,7 +58,6 @@ App_Timer_Data AppTimer = {
     .tntMode2_param = 0};
 
 App_Config_Data AppConfig = {.selected = 0};
-App_TNT_Data AppTNT = {.selected = 0};
 
 App_Stopwatch_Data AppStopwatch = {.running = 0, .start_timestamp = 0, .stopped_seconds = 0};
 
@@ -112,9 +113,9 @@ int AppInit() {
     infrared_worker_rx_enable_signal_decoding(worker, false);
     infrared_worker_rx_enable_blink_on_receiving(worker, true);
     infrared_worker_rx_set_received_signal_callback(worker, ir_received_callback, 0);
-    //furi_hal_gpio_init(&gpio_infrared_tx, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&gpio_ext_pc3, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
     LoadParams();
+    UpdateView();
     SetScreenBacklightBrightness(AppGlobal.brightness);
     return 0;
 }
@@ -272,6 +273,7 @@ void Draw(Canvas* canvas, void* ctx) {
         if(AppTimer.state == APP_TIMER_STATE_BZZZ) {
             elements_button_center(canvas, getStr(STR_GLOBAL_OFF));
         }
+        elements_button_right(canvas, getStr(STR_TNT_SETTINGS));
         return;
     }
 
@@ -294,6 +296,7 @@ void Draw(Canvas* canvas, void* ctx) {
                 elements_button_center(canvas, getStr(STR_GLOBAL_OFF));
         } else
             elements_button_center(canvas, getStr(STR_GLOBAL_ON));
+        elements_button_right(canvas, getStr(STR_TNT_SETTINGS));
         return;
     }
 
@@ -325,40 +328,53 @@ void Draw(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 125, y, AlignRight, AlignTop, getStr(STR_GLOBAL_ON));
     }
 
-    if(AppGlobal.selectedScreen == SCREEN_ID_TNT) {
+    if(AppGlobal.selectedScreen == SCREEN_ID_ALARM_EXT) {
         int x = 0, y = 0, w = 128, h = 64;
         canvas_draw_rframe(canvas, x, y, w, h, 1);
-        canvas_draw_rframe(canvas, x + 1, (AppTNT.selected * 13) + y + 1, w - 2, 13, 2);
+        canvas_draw_rframe(canvas, x + 1, (AppAlarm.selectedExt * 13) + y + 1, w - 2, 13, 2);
+        ApplyFont(canvas);
+        x += 2;
+        y += 4;
+        canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_CONF_TNT_BZZZT));
+        canvas_draw_str_aligned(canvas, x, y + 13, AlignLeft, AlignTop, getStr(STR_CONF_TNT_PC3));
+        canvas_draw_str_aligned(canvas, x, y + 26, AlignLeft, AlignTop, getStr(STR_ALARM_PRIOR));
+        int str_id1 = 0, str_id2 = 0, str_id3 = 0;
+        if(AppAlarm.tntMode1 == 0)
+            str_id1 = STR_GLOBAL_OFF;
+        else
+            str_id1 = STR_GLOBAL_ON;
+        if(AppAlarm.tntMode2 == 0)
+            str_id2 = STR_GLOBAL_OFF;
+        else
+            str_id2 = STR_GLOBAL_ON;
+        str_id3 = STR_ALARM_PRIOR_INT + AppAlarm.prior;
+        canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id1));
+        canvas_draw_str_aligned(canvas, x + w - 5, y + 13, AlignRight, AlignTop, getStr(str_id2));
+        canvas_draw_str_aligned(canvas, x + w - 5, y + 26, AlignRight, AlignTop, getStr(str_id3));
+        //   if(DEVB) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
+    }
+
+    if(AppGlobal.selectedScreen == SCREEN_ID_TIMER_EXT) {
+        int x = 0, y = 0, w = 128, h = 64;
+        canvas_draw_rframe(canvas, x, y, w, h, 1);
+        canvas_draw_rframe(canvas, x + 1, (AppTimer.selectedExt * 13) + y + 1, w - 2, 13, 2);
         ApplyFont(canvas);
         x += 2;
         y += 4;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_CONF_TNT_BZZZT));
         canvas_draw_str_aligned(canvas, x, y + 13, AlignLeft, AlignTop, getStr(STR_CONF_TNT_PC3));
         int str_id1 = 0, str_id2 = 0;
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) {
-            if(AppTimer.tntMode1 == 0)
-                str_id1 = STR_GLOBAL_OFF;
-            else
-                str_id1 = STR_GLOBAL_ON;
-            if(AppTimer.tntMode2 == 0)
-                str_id2 = STR_GLOBAL_OFF;
-            else
-                str_id2 = STR_GLOBAL_ON;
-        }
-
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) {
-            if(AppAlarm.tntMode1 == 0)
-                str_id1 = STR_GLOBAL_OFF;
-            else
-                str_id1 = STR_GLOBAL_ON;
-            if(AppAlarm.tntMode2 == 0)
-                str_id2 = STR_GLOBAL_OFF;
-            else
-                str_id2 = STR_GLOBAL_ON;
-        }
+        if(AppTimer.tntMode1 == 0)
+            str_id1 = STR_GLOBAL_OFF;
+        else
+            str_id1 = STR_GLOBAL_ON;
+        if(AppTimer.tntMode2 == 0)
+            str_id2 = STR_GLOBAL_OFF;
+        else
+            str_id2 = STR_GLOBAL_ON;
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id1));
         canvas_draw_str_aligned(canvas, x + w - 5, y + 13, AlignRight, AlignTop, getStr(str_id2));
-        if(DEVB) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
+        //    if(DEVB) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
 }
 
@@ -367,22 +383,22 @@ int KeyProc(int type, int key) {
         if(key == 255) OnTimerTick();
         return 0;
     }
-
     int ss = AppGlobal.selectedScreen;
     if(type == InputTypeLong) {
         if(key == InputKeyBack) {
             if(ss == SCREEN_ID_TIME) return 255; //exit
-            if(ss == SCREEN_ID_TIMER) showScreen(SCREEN_ID_TNT);
-            if(ss == SCREEN_ID_ALARM) showScreen(SCREEN_ID_TNT);
+            return 0;
+        }
+        if(key == InputKeyRight) {
+            if(ss == SCREEN_ID_TIMER) showScreen(SCREEN_ID_TIMER_EXT);
+            if(ss == SCREEN_ID_ALARM) showScreen(SCREEN_ID_ALARM_EXT);
+            return 0;
         }
         if(key == InputKeyOk) {
-            if(ss == SCREEN_ID_TIME) {
-                AppGlobal.show_time_only = !AppGlobal.show_time_only;
-            }
+            if(ss == SCREEN_ID_TIME) AppGlobal.show_time_only = !AppGlobal.show_time_only;
             return 0;
         }
     }
-
     if(type == InputTypeRepeat) {
         if(key == InputKeyUp) {
             if(ss == SCREEN_ID_TIME) {
@@ -399,7 +415,6 @@ int KeyProc(int type, int key) {
             }
             return 0;
         }
-
         if(key == InputKeyDown) {
             if(ss == SCREEN_ID_TIME) {
                 AppTimeKeyDown();
@@ -415,14 +430,18 @@ int KeyProc(int type, int key) {
             }
             return 0;
         }
+        return 0;
     }
-
     if(type == InputTypeShort) {
+        if(ss == SCREEN_ID_ALARM_EXT) {
+            AppAlarmExtKey(key);
+            return 0;
+        }
+        if(ss == SCREEN_ID_TIMER_EXT) {
+            AppTimerExtKey(key);
+            return 0;
+        }
         if(key == InputKeyBack) {
-            if(ss == SCREEN_ID_TNT) {
-                showScreen(AppGlobal.prevScreen);
-                return 0;
-            }
             if(ss == SCREEN_ID_STOPWATCH) {
                 showScreen(SCREEN_ID_TIME);
                 return 0;
@@ -446,11 +465,6 @@ int KeyProc(int type, int key) {
             return 0;
         }
         if(key == InputKeyOk) {
-            if(ss == SCREEN_ID_TNT) {
-                AppTNTKeyOk();
-                return 0;
-            }
-
             if(ss == SCREEN_ID_STOPWATCH) {
                 AppStopwatchToggle();
                 notification_beep_once();
@@ -471,10 +485,6 @@ int KeyProc(int type, int key) {
             return 0;
         }
         if(key == InputKeyUp) {
-            if(ss == SCREEN_ID_TNT) {
-                AppTNTKeyUp();
-                return 0;
-            }
             if(ss == SCREEN_ID_TIME) {
                 AppTimeKeyUp();
                 return 0;
@@ -494,11 +504,6 @@ int KeyProc(int type, int key) {
             return 0;
         }
         if(key == InputKeyDown) {
-            if(ss == SCREEN_ID_TNT) {
-                AppTNTKeyDown();
-                return 0;
-            }
-
             if(ss == SCREEN_ID_TIME) {
                 AppTimeKeyDown();
                 return 0;
@@ -518,10 +523,6 @@ int KeyProc(int type, int key) {
             return 0;
         }
         if(key == InputKeyLeft) {
-            if(ss == SCREEN_ID_TNT) {
-                AppTNTKeyLeft();
-                return 0;
-            }
             if(ss == SCREEN_ID_STOPWATCH) {
                 AppStopwatchReset();
                 return 0;
@@ -544,12 +545,7 @@ int KeyProc(int type, int key) {
             }
             return 0;
         }
-
         if(key == InputKeyRight) {
-            if(ss == SCREEN_ID_TNT) {
-                AppTNTKeyRight();
-                return 0;
-            }
             if(ss == SCREEN_ID_TIME) {
                 showScreen(SCREEN_ID_TIMER);
                 return 0;
@@ -568,6 +564,7 @@ int KeyProc(int type, int key) {
             }
             return 0;
         }
+        return 0;
     }
     return 0;
 }
@@ -769,6 +766,12 @@ void AppAlarmKeyRight() {
 void AppAlarmKeyOk() {
     if(AppAlarm.state == APP_ALARM_STATE_OFF) {
         AppAlarm.state = APP_ALARM_STATE_ON;
+        if(AppAlarm.prior == 1) {
+            DateTime dt;
+            dt.hour = AppAlarm.sH;
+            dt.minute = AppAlarm.sM;
+            furi_hal_rtc_set_alarm(&dt, 1);
+        }
         return;
     };
 
@@ -776,6 +779,12 @@ void AppAlarmKeyOk() {
         AppAlarm.state = APP_ALARM_STATE_OFF;
         AppAlarm.sH = AppAlarm.sH_old;
         AppAlarm.sM = AppAlarm.sM_old;
+        if(AppAlarm.prior == 1) {
+            DateTime dt;
+            dt.hour = AppAlarm.sH;
+            dt.minute = AppAlarm.sM;
+            furi_hal_rtc_set_alarm(&dt, 0);
+        }
         return;
     };
 
@@ -786,12 +795,18 @@ void AppAlarmKeyOk() {
             AppAlarm.sM = AppAlarm.sM - 60;
             AppAlarm.sH++;
             if(AppAlarm.sH > 23) AppAlarm.sH = 0;
+            if(AppAlarm.prior == 1) {
+                DateTime dt;
+                dt.hour = AppAlarm.sH;
+                dt.minute = AppAlarm.sM;
+                furi_hal_rtc_set_alarm(&dt, 1);
+            };
+            if(AppAlarm.tntMode1 == 1) SetRing(0);
+            if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
+            showScreen(SCREEN_ID_TIME);
+            return;
         };
-        if(AppAlarm.tntMode1 == 1) SetRing(0);
-        if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
-        showScreen(SCREEN_ID_TIME);
-        return;
-    };
+    }
 }
 
 void AppAlarmKeyBack() {
@@ -801,6 +816,71 @@ void AppAlarmKeyBack() {
     showScreen(SCREEN_ID_TIME);
     AppAlarm.sH = AppAlarm.sH_old;
     AppAlarm.sM = AppAlarm.sM_old;
+}
+
+void AppAlarmExtKey(int key) {
+    if(key == InputKeyBack) {
+        showScreen(AppGlobal.prevScreen);
+        return;
+    }
+    if(key == InputKeyUp) {
+        if(!AppAlarm.selectedExt)
+            AppAlarm.selectedExt = APP_ALARM_EXT_LINES - 1;
+        else
+            AppAlarm.selectedExt--;
+        return;
+    }
+    if(key == InputKeyDown) {
+        AppAlarm.selectedExt++;
+        if(AppAlarm.selectedExt == APP_ALARM_EXT_LINES) AppAlarm.selectedExt = 0;
+        return;
+    }
+    if(key == InputKeyLeft) {
+        if(AppAlarm.selectedExt == 0) AppAlarm.tntMode1 = 0; //bzzzt
+        if(AppAlarm.selectedExt == 1) AppAlarm.tntMode2 = 0; //pin7
+        if(AppAlarm.selectedExt == 2) {
+            if(AppAlarm.prior > 0) AppAlarm.prior--;
+        }
+        return;
+    }
+    if(key == InputKeyRight) {
+        if(AppAlarm.selectedExt == 0) AppAlarm.tntMode1 = 1; //bzzzt
+        if(AppAlarm.selectedExt == 1) AppAlarm.tntMode2 = 1; //pin7
+        if(AppAlarm.selectedExt == 2) {
+            if(AppAlarm.prior < 2) AppAlarm.prior++;
+        }
+        return;
+    }
+}
+
+void AppTimerExtKey(int key) {
+    if(key == InputKeyBack) {
+        showScreen(AppGlobal.prevScreen);
+        return;
+    }
+
+    if(key == InputKeyUp) {
+        if(!AppTimer.selectedExt)
+            AppTimer.selectedExt = APP_TIMER_EXT_LINES - 1;
+        else
+            AppTimer.selectedExt--;
+        return;
+    }
+    if(key == InputKeyDown) {
+        AppTimer.selectedExt++;
+        if(AppTimer.selectedExt == APP_TIMER_EXT_LINES) AppTimer.selectedExt = 0;
+        return;
+    }
+    if(key == InputKeyLeft) {
+        if(AppTimer.selectedExt == 0) AppTimer.tntMode1 = 0;
+        if(AppTimer.selectedExt == 1) AppTimer.tntMode2 = 0;
+        return;
+    }
+    if(key == InputKeyRight) {
+        if(AppTimer.selectedExt == 0) AppTimer.tntMode1 = 1;
+        if(AppTimer.selectedExt == 1) AppTimer.tntMode2 = 1;
+        return;
+    }
 }
 
 void AppConfigKeyUp() {
@@ -839,40 +919,6 @@ void AppConfigKeyRight() {
     }
 }
 
-void AppTNTKeyUp() {
-    if(AppTNT.selected == 0)
-        AppTNT.selected = APP_TNT_LINES - 1;
-    else
-        AppTNT.selected--;
-}
-void AppTNTKeyDown() {
-    AppTNT.selected++;
-    if(AppTNT.selected == APP_TNT_LINES) AppTNT.selected = 0;
-}
-void AppTNTKeyLeft() {
-    if(AppTNT.selected == 0) { //bzzzt
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode1 = 0;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode1 = 0;
-    }
-    if(AppTNT.selected == 1) { //pin7
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode2 = 0;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode2 = 0;
-    }
-}
-void AppTNTKeyRight() {
-    if(AppTNT.selected == 0) { //bzzzt
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode1 = 1;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode1 = 1;
-    }
-    if(AppTNT.selected == 1) { //pin7
-        if(AppGlobal.prevScreen == SCREEN_ID_TIMER) AppTimer.tntMode2 = 1;
-        if(AppGlobal.prevScreen == SCREEN_ID_ALARM) AppAlarm.tntMode2 = 1;
-    }
-}
-
-void AppTNTKeyOk() {
-}
-
 void OnTimerTick() {
     SetScreenBacklightBrightness(AppGlobal.brightness);
     if(AppGlobal.dspBrightnessBarFrames > 0) AppGlobal.dspBrightnessBarFrames--;
@@ -889,14 +935,14 @@ void OnTimerTick() {
     if(AppAlarm.state != APP_ALARM_STATE_OFF) {
         if(AppAlarm.sH == curr_dt.hour && AppAlarm.sM == curr_dt.minute && !curr_dt.second) {
             AppAlarm.state = APP_ALARM_STATE_BZZZ;
-            if(AppAlarm.tntMode1 == 1) SetRing(1);
+            if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) SetRing(1);
             if(AppAlarm.tntMode2 == 1) SetTNTmode2(1);
         }
     }
 
     if(AppAlarm.state == APP_ALARM_STATE_BZZZ) {
         showScreen(SCREEN_ID_ALARM);
-        if(AppAlarm.tntMode1 == 1) notification_timeup();
+        if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) notification_timeup();
     }
 
     int ats = AppTimer.state;
@@ -964,10 +1010,11 @@ void LoadParams() {
             storage_file_read(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
             storage_file_read(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
             storage_file_read(file, &AppAlarm.state, sizeof(AppAlarm.state));
+            storage_file_read(file, &AppAlarm.prior, sizeof(AppAlarm.prior));
             storage_file_read(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1));
-            storage_file_read(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1_param));
-            storage_file_read(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode2));
-            storage_file_read(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode2_param));
+            storage_file_read(file, &AppAlarm.tntMode1_param, sizeof(AppAlarm.tntMode1_param));
+            storage_file_read(file, &AppAlarm.tntMode2, sizeof(AppAlarm.tntMode2));
+            storage_file_read(file, &AppAlarm.tntMode2_param, sizeof(AppAlarm.tntMode2_param));
             storage_file_read(file, &AppTimer.expected_count, sizeof(AppTimer.expected_count));
             storage_file_read(file, &AppTimer.tntMode1, sizeof(AppTimer.tntMode1));
             storage_file_read(file, &AppTimer.tntMode1_param, sizeof(AppTimer.tntMode1_param));
@@ -984,7 +1031,7 @@ void LoadParams() {
     DateTime dt;
     AppAlarm.system_state = furi_hal_rtc_get_alarm(&dt);
 
-    furi_hal_rtc_set_alarm(NULL, false);
+    if(AppAlarm.prior == 0) furi_hal_rtc_set_alarm(NULL, false);
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
     AppTimer.count = AppTimer.expected_count;
@@ -1004,26 +1051,28 @@ void SaveParams() {
         storage_file_write(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
         storage_file_write(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
         storage_file_write(file, &AppAlarm.state, sizeof(AppAlarm.state));
+        storage_file_write(file, &AppAlarm.prior, sizeof(AppAlarm.prior));
         storage_file_write(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1));
-        storage_file_write(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1_param));
-        storage_file_write(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode2));
-        storage_file_write(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode2_param));
+        storage_file_write(file, &AppAlarm.tntMode1_param, sizeof(AppAlarm.tntMode1_param));
+        storage_file_write(file, &AppAlarm.tntMode2, sizeof(AppAlarm.tntMode2));
+        storage_file_write(file, &AppAlarm.tntMode2_param, sizeof(AppAlarm.tntMode2_param));
         storage_file_write(file, &AppTimer.expected_count, sizeof(AppTimer.expected_count));
         storage_file_write(file, &AppTimer.tntMode1, sizeof(AppTimer.tntMode1));
         storage_file_write(file, &AppTimer.tntMode1_param, sizeof(AppTimer.tntMode1_param));
         storage_file_write(file, &AppTimer.tntMode2, sizeof(AppTimer.tntMode2));
         storage_file_write(file, &AppTimer.tntMode2_param, sizeof(AppTimer.tntMode2_param));
     }
-
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
 
-    if(AppAlarm.state != APP_ALARM_STATE_OFF) {
-        DateTime dt;
-        dt.hour = AppAlarm.sH;
-        dt.minute = AppAlarm.sM;
-        furi_hal_rtc_set_alarm(&dt, 1);
-    } else
-        furi_hal_rtc_set_alarm(NULL, AppAlarm.system_state);
+    DateTime dt;
+    if(AppAlarm.prior == 0) {
+        if(AppAlarm.state != APP_ALARM_STATE_OFF) {
+            dt.hour = AppAlarm.sH;
+            dt.minute = AppAlarm.sM;
+            furi_hal_rtc_set_alarm(&dt, 1);
+        } else
+            furi_hal_rtc_set_alarm(NULL, AppAlarm.system_state);
+    }
 }

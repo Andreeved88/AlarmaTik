@@ -3,7 +3,7 @@
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
-#define CFG_VERSION           4
+#define CFG_VERSION           5
 #define CLOCK_RFC_DATE_FORMAT "%s %.2d.%.2d.%.4d"
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define TIMER_TIME_FORMAT     "%02ld:%02ld:%02ld"
@@ -18,7 +18,8 @@
 #define SCREEN_ID_TIMER     2
 #define SCREEN_ID_STOPWATCH 3
 #define SCREEN_ID_CONFIG    4
-#define SCREEN_ID_TNT       5
+#define SCREEN_ID_TIMER_EXT 5
+#define SCREEN_ID_ALARM_EXT 6
 
 #define FONT_ID_INT 0
 #define FONT_ID_EXT 1
@@ -47,6 +48,7 @@ typedef struct {
 
 typedef struct {
     int selected;
+    int selectedExt;
     int32_t count;
     int32_t expected_count;
     int state;
@@ -56,23 +58,24 @@ typedef struct {
     int tntMode2_param;
 } App_Timer_Data;
 
-#define APP_ALARM_STATE_OFF   0
-#define APP_ALARM_STATE_ON    1
-#define APP_ALARM_STATE_SLEEP 2
-#define APP_ALARM_STATE_BZZZ  3
+#define APP_ALARM_STATE_OFF      0
+#define APP_ALARM_STATE_ON       1
+#define APP_ALARM_STATE_SLEEP    2
+#define APP_ALARM_STATE_BZZZ     3
+#define APP_ALARM_PRIOR_INT      0
+#define APP_ALARM_PRIOR_SYS      1
+#define APP_ALARM_PRIOR_INDEPEND 2
 
-#define APP_CONFIG_LINES 3
-#define APP_TNT_LINES    2
+#define APP_CONFIG_LINES    3
+#define APP_TIMER_EXT_LINES 2
+#define APP_ALARM_EXT_LINES 3
 typedef struct {
     int selected;
 } App_Config_Data;
 
 typedef struct {
     int selected;
-} App_TNT_Data;
-
-typedef struct {
-    int selected;
+    int selectedExt;
     int sH;
     int sM;
     int sH_old;
@@ -83,6 +86,7 @@ typedef struct {
     int tntMode1_param;
     int tntMode2;
     int tntMode2_param;
+    int prior;
 } App_Alarm_Data;
 
 typedef struct {
@@ -139,11 +143,6 @@ void notification_timeup();
 void showScreen(int id);
 void ApplyFont(Canvas* c);
 char* getStr(int id);
-void AppTNTKeyUp();
-void AppTNTKeyDown();
-void AppTNTKeyLeft();
-void AppTNTKeyRight();
-void AppTNTKeyOk();
 void AppTimeKeyUp();
 void AppTimeKeyDown();
 void AppStopwatchToggle();
@@ -161,6 +160,8 @@ void AppAlarmKeyLeft();
 void AppAlarmKeyRight();
 void AppAlarmKeyOk();
 void AppAlarmKeyBack();
+void AppAlarmExtKey(int key);
+void AppTimerExtKey(int key);
 void AppConfigKeyUp();
 void AppConfigKeyDown();
 void AppConfigKeyLeft();
