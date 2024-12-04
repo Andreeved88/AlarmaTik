@@ -3,21 +3,20 @@
 extern F0App* FApp;
 
 #define DEVB 0
-char* CaptionsRus[] = {"[0]",     "Выкл",        "Вкл",   "Сброс",       "Пуск",
-                       "Стоп",    "Lang / Язык", "Рус",   "Eng",         "Пакет рун",
-                       "База",    "Система",     "БЗЗЗТ", "ВУ на 7[C3]", "ИК приёмник",
-                       "Буд",     "Сек",         "Тмр",   "Спать",       "Режим",
-                       "Настр",   "Пнд",         "Втр",   "Срд",         "Чтр",
-                       "Птн",     "Сбт",         "Вск",   "Приоритет",   "Встроенный",
-                       "Внешний", "Равный",      "Вибро"};
+char* CaptionsRus[] = {"[0]",     "Выкл",        "Вкл",   "Сброс",     "Пуск",
+                       "Стоп",    "Lang / Язык", "Рус",   "Eng",       "Пакет рун",
+                       "База",    "Система",     "БЗЗЗТ", "C3+ B2-",   "ИК приёмник",
+                       "Буд",     "Сек",         "Тмр",   "Спать",     "Режим",
+                       "Настр",   "Пнд",         "Втр",   "Срд",       "Чтр",
+                       "Птн",     "Сбт",         "Вск",   "Приоритет", "Встроенный",
+                       "Внешний", "Равный",      "Вибро", "Мигалка",   "Пикалка"};
 
-char* CaptionsEng[] = {"[0]",      "Off",         "On",    "Reset",         "Start",
-                       "Stop",     "Lang / Язык", "Рус",   "Eng",           "Font",
-                       "Internal", "System",      "BZZZT", "HIGH at 7[C3]", "IR reciever",
-                       "Alarm",    "SW",          "Timer", "Sleep",         "Action",
-                       "Set",      "Mon",         "Tue",   "Wed",           "Thr",
-                       "Fri",      "Sat",         "Sun",   "Приоритет",     "Встроенный",
-                       "Внешний",  "Равный",      "Vibro"};
+char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",     "Stop",
+                       "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal",  "System",
+                       "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "SW",        "Timer",
+                       "Sleep",       "Action",  "Set",         "Mon",   "Tue",       "Wed",
+                       "Thr",         "Fri",     "Sat",         "Sun",   "Приоритет", "Встроенный",
+                       "Внешний",     "Равный",  "Vibro",       "Blink", "Sounds"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -32,8 +31,7 @@ App_Global_Data AppGlobal = {
     .show_time_only = 0,
     .lang = 0,
     .font = 0,
-    .ir_detection = 0,
-    .irCount = 0};
+    .ir_detection = 0};
 
 App_Alarm_Data AppAlarm = {
     .selected = 1,
@@ -62,7 +60,7 @@ App_Timer_Data AppTimer = {
     .tntMode2_param = 0};
 
 App_Config_Data AppConfig = {.selected = 0};
-App_Bzzzt_Data AppBzzzt = {.selected = 0, .v = 1, .s = 1, .l = 1};
+App_Bzzzt_Data AppBzzzt = {.selected = 0, .v = 1, .s = 1, .b = 1};
 App_Stopwatch_Data AppStopwatch = {.running = 0, .start_timestamp = 0, .stopped_seconds = 0};
 
 char time_string[TIME_STR_SIZE];
@@ -74,11 +72,6 @@ char alarm_string[TIME_STR_SIZE];
 DateTime curr_dt;
 InfraredWorker* worker;
 
-const NotificationMessage message_delay_75 = {
-    .type = NotificationMessageTypeDelay,
-    .data.delay.length = 75,
-};
-
 static const NotificationSequence sequence_beep = {
     &message_blue_255,
     &message_note_c8,
@@ -87,25 +80,22 @@ static const NotificationSequence sequence_beep = {
     NULL,
 };
 
-static const NotificationSequence sequence_bzzzt = {
+static NotificationSequence sequence_bzzzt = {
+    &message_vibro_on,
     &message_force_display_brightness_setting_1f,
     &message_display_backlight_on,
     &message_note_c8,
     &message_delay_50,
     &message_sound_off,
-    &message_delay_75,
+    &message_delay_100,
     &message_note_c8,
     &message_delay_50,
     &message_sound_off,
-    &message_delay_75,
+    &message_delay_100,
     &message_note_c8,
     &message_delay_50,
     &message_sound_off,
-    &message_delay_75,
-    &message_note_c8,
-    &message_delay_50,
-    &message_sound_off,
-    &message_delay_75,
+    &message_delay_100,
     &message_vibro_off,
     &message_display_backlight_off,
     &message_delay_500,
@@ -118,7 +108,21 @@ void notification_beep_once() {
 
 void notification_BZZZT(int params) {
     bool v = params & BZZZT_FLAG_VIBRO;
-    if(v) notification_message(FApp->Notificator, &sequence_set_vibro_on);
+    bool b = params & BZZZT_FLAG_BLINK;
+    if(!v)
+        sequence_bzzzt[0] = &message_vibro_off;
+    else
+        sequence_bzzzt[0] = &message_vibro_on;
+
+    if(!b) {
+        sequence_bzzzt[1] = &message_delay_1;
+        sequence_bzzzt[2] = &message_delay_1;
+        sequence_bzzzt[16] = &message_delay_1;
+    } else {
+        sequence_bzzzt[1] = &message_force_display_brightness_setting_1f;
+        sequence_bzzzt[2] = &message_display_backlight_on;
+        sequence_bzzzt[16] = &message_display_backlight_off;
+    };
     notification_message(FApp->Notificator, &sequence_bzzzt);
 }
 
@@ -126,12 +130,10 @@ void showScreen(int id) {
     AppGlobal.prevScreen = AppGlobal.selectedScreen;
     AppGlobal.selectedScreen = id;
 }
-
 void ApplyFont(Canvas* c) {
     if(AppGlobal.font == FONT_ID_INT) canvas_set_custom_u8g2_font(c, quadro7);
     if(AppGlobal.font == FONT_ID_EXT) canvas_set_font(c, FontSecondary);
 }
-
 char* getStr(int id) {
     if(AppGlobal.lang == 0)
         return CaptionsEng[id];
@@ -144,7 +146,6 @@ static void ir_received_callback(void* ctx, InfraredWorkerSignal* signal) {
     UNUSED(signal);
     AppGlobal.irRecieved = 1;
 }
-
 void SetIR_rx(bool state) {
     if(AppGlobal.ir_detection == 0) return;
     AppGlobal.irRecieved = 0;
@@ -165,18 +166,23 @@ int AppInit() {
     infrared_worker_rx_enable_blink_on_receiving(worker, true);
     infrared_worker_rx_set_received_signal_callback(worker, ir_received_callback, 0);
     furi_hal_gpio_init(&gpio_ext_pc3, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
-    furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullUp, GpioSpeedVeryHigh);
+    furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+    furi_hal_gpio_write(&gpio_ext_pc3, 0);
+    furi_hal_gpio_write(&gpio_ext_pb2, 1);
     LoadParams();
     UpdateView();
     SetScreenBacklightBrightness(AppGlobal.brightness);
     return 0;
 }
-
 int AppDeinit() {
     ResetLED();
     SetScreenBacklightBrightness((int)(FApp->SystemScreenBrightness * 100));
     SetScreenBacklightMode(3); //auto
     SetIR_rx(0);
+    furi_hal_gpio_init(&gpio_ext_pc3, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+    furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+    furi_hal_gpio_write(&gpio_ext_pc3, 0);
+    furi_hal_gpio_write(&gpio_ext_pb2, 0);
     SaveParams();
     infrared_worker_free(worker);
     return 0;
@@ -436,14 +442,14 @@ void Draw(Canvas* canvas, void* ctx) {
         ApplyFont(canvas);
         x += 2;
         y += 4;
+        int str_id1 = STR_GLOBAL_OFF, str_id2 = STR_GLOBAL_OFF;
+        if(AppBzzzt.v == 1) str_id1 = STR_GLOBAL_ON;
+        if(AppBzzzt.b == 1) str_id2 = STR_GLOBAL_ON;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_BZZZT_VIBRO));
-        int str_id1 = 0;
-        if(AppBzzzt.v == 0)
-            str_id1 = STR_GLOBAL_OFF;
-        else
-            str_id1 = STR_GLOBAL_ON;
-
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id1));
+        y += 13;
+        canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_BZZZT_BLINK));
+        canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id2));
     }
 }
 
@@ -638,7 +644,6 @@ void AppTimeKeyUp() {
     if(AppGlobal.brightness > 100) AppGlobal.brightness = 100;
     SetScreenBacklightBrightness(AppGlobal.brightness);
 }
-
 void AppTimeKeyDown() {
     AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
     if(AppGlobal.brightness > 0) {
@@ -669,7 +674,6 @@ void AppStopwatchToggle() {
     }
     AppStopwatch.running = !AppStopwatch.running;
 }
-
 void AppStopwatchReset() {
     if(AppStopwatch.start_timestamp) {
         AppStopwatch.running = 0;
@@ -696,7 +700,6 @@ void AppTimerKeyUp() {
     if(AppTimer.count > 100 * 60 * 60 - 1) AppTimer.count = 100 * 60 * 60 - 1;
     AppTimer.expected_count = AppTimer.count;
 }
-
 void AppTimerKeyDown() {
     if(AppTimer.state != APP_TIMER_STATE_OFF) return;
     switch(AppTimer.selected) {
@@ -715,7 +718,6 @@ void AppTimerKeyDown() {
     if(AppTimer.count < 0) AppTimer.count = 0;
     AppTimer.expected_count = AppTimer.count;
 }
-
 void AppTimerKeyOk() {
     int ats = AppTimer.state;
     if(ats == APP_TIMER_STATE_OFF || ats == APP_TIMER_STATE_PAUSE) { //ON
@@ -737,7 +739,6 @@ void AppTimerKeyOk() {
         return;
     }
 }
-
 void AppTimerKeyBack() {
     if(AppTimer.state == APP_TIMER_STATE_BZZZ) {
         AppTimerReset();
@@ -746,7 +747,6 @@ void AppTimerKeyBack() {
     }
     AppGlobal.selectedScreen = SCREEN_ID_TIME;
 }
-
 void AppTimerKeyLeft() { //RESET
     if(AppTimer.state == APP_TIMER_STATE_OFF) {
         AppTimer.selected--;
@@ -759,14 +759,12 @@ void AppTimerKeyLeft() { //RESET
         return;
     }
 }
-
 void AppTimerKeyRight() {
     if(AppTimer.state == APP_TIMER_STATE_OFF) {
         AppTimer.selected++;
         if(AppTimer.selected == 4) AppTimer.selected = 1;
     }
 }
-
 void AppTimerReset() {
     AppTimer.state = APP_TIMER_STATE_OFF;
     AppTimer.count = AppTimer.expected_count;
@@ -788,7 +786,6 @@ void AppAlarmKeyUp() {
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
 }
-
 void AppAlarmKeyDown() {
     switch(AppAlarm.selected) {
     case 1:
@@ -809,17 +806,14 @@ void AppAlarmKeyDown() {
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
 }
-
 void AppAlarmKeyLeft() {
     AppAlarm.selected = 1;
     return;
 }
-
 void AppAlarmKeyRight() {
     AppAlarm.selected = 2;
     return;
 }
-
 void AppAlarmKeyOk() {
     if(AppAlarm.state == APP_ALARM_STATE_OFF) {
         AppAlarm.state = APP_ALARM_STATE_ON;
@@ -865,7 +859,6 @@ void AppAlarmKeyOk() {
         };
     }
 }
-
 void AppAlarmKeyBack() {
     if(AppAlarm.state == APP_ALARM_STATE_BZZZ) AppAlarm.state = APP_ALARM_STATE_SLEEP;
     if(AppAlarm.tntMode1 == 1) SetRing(0);
@@ -909,7 +902,10 @@ void AppAlarmExtKey(int key) {
         return;
     }
     if(key == InputKeyOk) {
-        if(AppAlarm.selectedExt == 0) showScreen(SCREEN_ID_BZZZT_SET);
+        if(AppAlarm.selectedExt == 0) {
+            AppBzzztLoadParam(AppAlarm.tntMode1_param);
+            showScreen(SCREEN_ID_BZZZT_SET);
+        }
     }
 
     if(key == InputKeyBack) {
@@ -950,7 +946,10 @@ void AppTimerExtKey(int key) {
     }
 
     if(key == InputKeyOk) {
-        if(AppTimer.selectedExt == 0) showScreen(SCREEN_ID_BZZZT_SET);
+        if(AppTimer.selectedExt == 0) {
+            AppBzzztLoadParam(AppTimer.tntMode1_param);
+            showScreen(SCREEN_ID_BZZZT_SET);
+        }
     }
     if(key == InputKeyBack) {
         showScreen(SCREEN_ID_TIMER_EXT);
@@ -1001,10 +1000,27 @@ void AppConfigKey(int key) {
     }
 }
 
+void AppBzzztLoadParam(int p) {
+    if(p & BZZZT_FLAG_BLINK)
+        AppBzzzt.b = 1;
+    else
+        AppBzzzt.b = 0;
+    if(p & BZZZT_FLAG_VIBRO)
+        AppBzzzt.v = 1;
+    else
+        AppBzzzt.v = 0;
+    if(p & BZZZT_FLAG_SOUND)
+        AppBzzzt.s = 1;
+    else
+        AppBzzzt.s = 0;
+}
 void AppBzzztKey(int key) {
     if(key == InputKeyLeft) {
         if(AppBzzzt.selected == 0) {
             AppBzzzt.v = 0;
+        }
+        if(AppBzzzt.selected == 1) {
+            AppBzzzt.b = 0;
         }
         return;
     }
@@ -1012,12 +1028,37 @@ void AppBzzztKey(int key) {
         if(AppBzzzt.selected == 0) {
             AppBzzzt.v = 1;
         }
+        if(AppBzzzt.selected == 1) {
+            AppBzzzt.b = 1;
+        }
+        return;
+    }
+
+    if(key == InputKeyUp) {
+        if(AppBzzzt.selected > 0) {
+            AppBzzzt.selected--;
+        }
+        return;
+    }
+    if(key == InputKeyDown) {
+        if(AppBzzzt.selected < 1) {
+            AppBzzzt.selected++;
+        }
+
+        return;
+    }
+
+    if(key == InputKeyOk) {
+        if(AppBzzzt.selected == 0) AppBzzzt.v = !AppBzzzt.v;
+        if(AppBzzzt.selected == 1) AppBzzzt.b = !AppBzzzt.b;
+        if(AppBzzzt.selected == 2) AppBzzzt.s = !AppBzzzt.s;
 
         return;
     }
 
     if(key == InputKeyBack) {
-        int p = BZZZT_FLAG_SCREEN | BZZZT_FLAG_SOUND;
+        int p = BZZZT_FLAG_SOUND;
+        if(AppBzzzt.b) p |= BZZZT_FLAG_BLINK;
         if(AppBzzzt.v) p |= BZZZT_FLAG_VIBRO;
         if(AppGlobal.prevScreen == SCREEN_ID_ALARM_EXT) {
             AppAlarm.tntMode1_param = p;
@@ -1037,7 +1078,6 @@ void OnTimerTick() {
     if(AppGlobal.ringing) {
         if(AppGlobal.irRecieved) {
             SetRing(0);
-            AppGlobal.irCount = 0;
             AppGlobal.irRecieved = 0;
             if(AppGlobal.selectedScreen == SCREEN_ID_TIMER) AppTimerKeyBack();
             if(AppGlobal.selectedScreen == SCREEN_ID_ALARM) AppAlarmKeyBack();

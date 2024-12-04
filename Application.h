@@ -39,7 +39,6 @@ typedef struct {
     int lang;
     int font;
     int ir_detection;
-    int irCount;
 } App_Global_Data;
 
 #define APP_TIMER_STATE_OFF   0
@@ -68,11 +67,12 @@ typedef struct {
 #define APP_ALARM_PRIOR_INDEPEND 2
 #define BZZZT_FLAG_VIBRO         0x1
 #define BZZZT_FLAG_SOUND         0x2
-#define BZZZT_FLAG_SCREEN        0x4
+#define BZZZT_FLAG_BLINK         0x4
 
 #define APP_CONFIG_LINES    3
 #define APP_TIMER_EXT_LINES 2
 #define APP_ALARM_EXT_LINES 3
+
 typedef struct {
     int selected;
 } App_Config_Data;
@@ -81,7 +81,7 @@ typedef struct {
     int selected;
     bool v;
     bool s;
-    bool l;
+    bool b;
 } App_Bzzzt_Data;
 
 typedef struct {
@@ -135,6 +135,7 @@ void AppAlarmKeyBack();
 void AppAlarmExtKey(int key);
 void AppTimerExtKey(int key);
 void AppConfigKey(int key);
+void AppBzzztLoadParam(int p);
 void AppBzzztKey(int key);
 void OnTimerTick();
 void SetTNTmode2(int state);

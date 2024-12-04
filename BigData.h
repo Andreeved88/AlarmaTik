@@ -31,3 +31,5 @@
 #define STR_ALARM_PRIOR_ENT  30
 #define STR_ALARM_PRIOR_BOTH 31
 #define STR_BZZZT_VIBRO      32
+#define STR_BZZZT_BLINK      33
+#define STR_BZZZT_SOUND      34
