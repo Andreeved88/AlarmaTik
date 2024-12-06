@@ -2,7 +2,6 @@
 #include "F0CustomFonts.h"
 extern F0App* FApp;
 
-#define DEVB 0
 char* CaptionsRus[] = {"[0]",     "Выкл",        "Вкл",   "Сброс",     "Пуск",
                        "Стоп",    "Lang / Язык", "Рус",   "Eng",       "Пакет рун",
                        "База",    "Система",     "БЗЗЗТ", "C3+ B2-",   "ИК приёмник",
@@ -62,7 +61,6 @@ App_Timer_Data AppTimer = {
 App_Config_Data AppConfig = {.selected = 0};
 App_Bzzzt_Data AppBzzzt = {.selected = 0, .v = 1, .s = 1, .b = 1};
 App_Stopwatch_Data AppStopwatch = {.running = 0, .start_timestamp = 0, .stopped_seconds = 0};
-
 char time_string[TIME_STR_SIZE];
 char date_string[TIME_STR_SIZE];
 char timer_string[TIME_STR_SIZE];
@@ -79,23 +77,25 @@ static const NotificationSequence sequence_beep = {
     &message_sound_off,
     NULL,
 };
-
 static NotificationSequence sequence_bzzzt = {
     &message_vibro_on,
     &message_force_display_brightness_setting_1f,
     &message_display_backlight_on,
-    &message_note_c8,
+    &message_note_c5,
     &message_delay_50,
     &message_sound_off,
     &message_delay_100,
-    &message_note_c8,
+    &message_note_c6,
     &message_delay_50,
     &message_sound_off,
     &message_delay_100,
-    &message_note_c8,
+    &message_note_c5,
     &message_delay_50,
     &message_sound_off,
     &message_delay_100,
+    &message_note_c6,
+    &message_delay_50,
+    &message_sound_off,
     &message_vibro_off,
     &message_display_backlight_off,
     &message_delay_500,
@@ -109,6 +109,7 @@ void notification_beep_once() {
 void notification_BZZZT(int params) {
     bool v = params & BZZZT_FLAG_VIBRO;
     bool b = params & BZZZT_FLAG_BLINK;
+    bool s = params & BZZZT_FLAG_SOUND;
     if(!v)
         sequence_bzzzt[0] = &message_vibro_off;
     else
@@ -117,12 +118,25 @@ void notification_BZZZT(int params) {
     if(!b) {
         sequence_bzzzt[1] = &message_delay_1;
         sequence_bzzzt[2] = &message_delay_1;
-        sequence_bzzzt[16] = &message_delay_1;
+        sequence_bzzzt[19] = &message_delay_1;
     } else {
         sequence_bzzzt[1] = &message_force_display_brightness_setting_1f;
         sequence_bzzzt[2] = &message_display_backlight_on;
-        sequence_bzzzt[16] = &message_display_backlight_off;
-    };
+        sequence_bzzzt[19] = &message_display_backlight_off;
+    }
+    if(!s) {
+        sequence_bzzzt[3] = &message_delay_500;
+        sequence_bzzzt[4] = &message_vibro_off;
+        sequence_bzzzt[5] = &message_display_backlight_off;
+        sequence_bzzzt[6] = &message_delay_500;
+        sequence_bzzzt[7] = NULL;
+    } else {
+        sequence_bzzzt[3] = &message_note_c5;
+        sequence_bzzzt[4] = &message_delay_50;
+        sequence_bzzzt[5] = &message_sound_off;
+        sequence_bzzzt[6] = &message_delay_100;
+        sequence_bzzzt[7] = &message_note_c6;
+    }
     notification_message(FApp->Notificator, &sequence_bzzzt);
 }
 
@@ -172,6 +186,7 @@ int AppInit() {
     LoadParams();
     UpdateView();
     SetScreenBacklightBrightness(AppGlobal.brightness);
+    SetScreenBacklightMode(3);
     return 0;
 }
 int AppDeinit() {
@@ -442,14 +457,18 @@ void Draw(Canvas* canvas, void* ctx) {
         ApplyFont(canvas);
         x += 2;
         y += 4;
-        int str_id1 = STR_GLOBAL_OFF, str_id2 = STR_GLOBAL_OFF;
+        int str_id1 = STR_GLOBAL_OFF, str_id2 = STR_GLOBAL_OFF, str_id3 = STR_GLOBAL_OFF;
         if(AppBzzzt.v == 1) str_id1 = STR_GLOBAL_ON;
         if(AppBzzzt.b == 1) str_id2 = STR_GLOBAL_ON;
+        if(AppBzzzt.s == 1) str_id3 = STR_GLOBAL_ON;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_BZZZT_VIBRO));
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id1));
         y += 13;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_BZZZT_BLINK));
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id2));
+        y += 13;
+        canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_BZZZT_SOUND));
+        canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id3));
     }
 }
 
@@ -1016,50 +1035,36 @@ void AppBzzztLoadParam(int p) {
 }
 void AppBzzztKey(int key) {
     if(key == InputKeyLeft) {
-        if(AppBzzzt.selected == 0) {
-            AppBzzzt.v = 0;
-        }
-        if(AppBzzzt.selected == 1) {
-            AppBzzzt.b = 0;
-        }
+        if(AppBzzzt.selected == 0) AppBzzzt.v = 0;
+        if(AppBzzzt.selected == 1) AppBzzzt.b = 0;
+        if(AppBzzzt.selected == 2) AppBzzzt.s = 0;
         return;
     }
     if(key == InputKeyRight) {
-        if(AppBzzzt.selected == 0) {
-            AppBzzzt.v = 1;
-        }
-        if(AppBzzzt.selected == 1) {
-            AppBzzzt.b = 1;
-        }
+        if(AppBzzzt.selected == 0) AppBzzzt.v = 1;
+        if(AppBzzzt.selected == 1) AppBzzzt.b = 1;
+        if(AppBzzzt.selected == 2) AppBzzzt.s = 1;
         return;
     }
-
     if(key == InputKeyUp) {
-        if(AppBzzzt.selected > 0) {
-            AppBzzzt.selected--;
-        }
+        if(AppBzzzt.selected > 0) AppBzzzt.selected--;
         return;
     }
     if(key == InputKeyDown) {
-        if(AppBzzzt.selected < 1) {
-            AppBzzzt.selected++;
-        }
-
+        if(AppBzzzt.selected < 2) AppBzzzt.selected++;
         return;
     }
-
     if(key == InputKeyOk) {
         if(AppBzzzt.selected == 0) AppBzzzt.v = !AppBzzzt.v;
         if(AppBzzzt.selected == 1) AppBzzzt.b = !AppBzzzt.b;
         if(AppBzzzt.selected == 2) AppBzzzt.s = !AppBzzzt.s;
-
         return;
     }
-
     if(key == InputKeyBack) {
-        int p = BZZZT_FLAG_SOUND;
+        int p = 0;
         if(AppBzzzt.b) p |= BZZZT_FLAG_BLINK;
         if(AppBzzzt.v) p |= BZZZT_FLAG_VIBRO;
+        if(AppBzzzt.s) p |= BZZZT_FLAG_SOUND;
         if(AppGlobal.prevScreen == SCREEN_ID_ALARM_EXT) {
             AppAlarm.tntMode1_param = p;
             showScreen(SCREEN_ID_ALARM_EXT);
@@ -1173,7 +1178,6 @@ void LoadParams() {
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
     AppTimer.count = AppTimer.expected_count;
-    UpdateView();
 }
 
 void SaveParams() {

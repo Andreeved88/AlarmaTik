@@ -93,8 +93,7 @@ void SetLED(int r, int g, int b, float br) {
     };
     FApp->Notificator->settings.led_brightness = br;
     notification_message(FApp->Notificator, &notification_sequence);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    furi_thread_flags_wait(0, FuriFlagWaitAny, 10);
 }
 
 void ResetLED() {
