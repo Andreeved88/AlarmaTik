@@ -31,7 +31,4 @@ void UpdateView();
 void SetLED(int r, int g, int b, float br);
 void ResetLED();
 void SetScreenBacklightBrightness(int brightness);
-void SetScreenBacklightMode();
-
-#define PB2 gpio_ext_pb2
 bool PinRead(GpioPin pin);

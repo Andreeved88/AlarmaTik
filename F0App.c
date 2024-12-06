@@ -108,14 +108,6 @@ void SetScreenBacklightBrightness(int brightness) {
     notification_message(FApp->Notificator, &sequence_display_backlight_on);
 }
 
-void SetScreenBacklightMode(int mode) {
-    if(mode == 0) notification_message(FApp->Notificator, &sequence_display_backlight_off);
-    if(mode == 1) notification_message(FApp->Notificator, &sequence_display_backlight_on);
-    if(mode == 2) notification_message(FApp->Notificator, &sequence_display_backlight_enforce_on);
-    if(mode == 3)
-        notification_message(FApp->Notificator, &sequence_display_backlight_enforce_auto);
-}
-
 void UpdateView() {
     view_port_update(FApp->view_port);
 }

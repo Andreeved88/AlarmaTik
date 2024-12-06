@@ -186,13 +186,11 @@ int AppInit() {
     LoadParams();
     UpdateView();
     SetScreenBacklightBrightness(AppGlobal.brightness);
-    SetScreenBacklightMode(3);
     return 0;
 }
 int AppDeinit() {
     ResetLED();
     SetScreenBacklightBrightness((int)(FApp->SystemScreenBrightness * 100));
-    SetScreenBacklightMode(3); //auto
     SetIR_rx(0);
     furi_hal_gpio_init(&gpio_ext_pc3, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
@@ -346,7 +344,6 @@ void Draw(Canvas* canvas, void* ctx) {
         if(AppTimer.state == APP_TIMER_STATE_BZZZ) {
             elements_button_center(canvas, getStr(STR_GLOBAL_OFF));
         }
-        elements_button_right(canvas, getStr(STR_TNT_SETTINGS));
         return;
     }
 
@@ -369,7 +366,6 @@ void Draw(Canvas* canvas, void* ctx) {
                 elements_button_center(canvas, getStr(STR_GLOBAL_OFF));
         } else
             elements_button_center(canvas, getStr(STR_GLOBAL_ON));
-        elements_button_right(canvas, getStr(STR_TNT_SETTINGS));
         return;
     }
 
@@ -483,13 +479,19 @@ int KeyProc(int type, int key) {
             if(ss == SCREEN_ID_TIME) return 255; //exit
             return 0;
         }
-        if(key == InputKeyRight) {
-            if(ss == SCREEN_ID_TIMER) showScreen(SCREEN_ID_TIMER_EXT);
-            if(ss == SCREEN_ID_ALARM) showScreen(SCREEN_ID_ALARM_EXT);
-            return 0;
-        }
         if(key == InputKeyOk) {
-            if(ss == SCREEN_ID_TIME) AppGlobal.show_time_only = !AppGlobal.show_time_only;
+            if(ss == SCREEN_ID_TIME) {
+                showScreen(SCREEN_ID_CONFIG);
+                return 0;
+            }
+            if(ss == SCREEN_ID_TIMER) {
+                if(AppTimer.state != APP_TIMER_STATE_BZZZ) showScreen(SCREEN_ID_TIMER_EXT);
+                return 0;
+            }
+            if(ss == SCREEN_ID_ALARM) {
+                if(AppAlarm.state != APP_ALARM_STATE_BZZZ) showScreen(SCREEN_ID_ALARM_EXT);
+                return 0;
+            }
             return 0;
         }
     }
@@ -556,10 +558,7 @@ int KeyProc(int type, int key) {
                 AppAlarmKeyBack();
                 return 0;
             }
-            if(ss == SCREEN_ID_TIME) {
-                showScreen(SCREEN_ID_CONFIG);
-                return 0;
-            }
+            if(ss == SCREEN_ID_TIME) AppGlobal.show_time_only = !AppGlobal.show_time_only;
             return 0;
         }
         if(key == InputKeyOk) {
@@ -1133,7 +1132,6 @@ void SetTNTmode2(int state) {
 
 void SetRing(bool state) {
     AppGlobal.ringing = state;
-    if(!state) SetScreenBacklightMode(2);
     SetIR_rx(state);
 }
 
