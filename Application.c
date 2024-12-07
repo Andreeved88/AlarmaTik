@@ -1012,6 +1012,18 @@ void AppConfigKey(int key) {
         }
         return;
     }
+    if(key == InputKeyOk) {
+        if(AppConfig.selected == 0) {
+            AppGlobal.lang = !AppGlobal.lang;
+        }
+        if(AppConfig.selected == 1) {
+            AppGlobal.font = !AppGlobal.font;
+        }
+        if(AppConfig.selected == 2) {
+            AppGlobal.ir_detection = !AppGlobal.ir_detection;
+        }
+        return;
+    }
     if(key == InputKeyBack) {
         showScreen(SCREEN_ID_TIME);
         return;
@@ -1077,6 +1089,7 @@ void AppBzzztKey(int key) {
 }
 
 void OnTimerTick() {
+    bool bzzzt_busy = 0;
     SetScreenBacklightBrightness(AppGlobal.brightness);
     if(AppGlobal.dspBrightnessBarFrames > 0) AppGlobal.dspBrightnessBarFrames--;
     if(AppGlobal.ringing) {
@@ -1091,15 +1104,20 @@ void OnTimerTick() {
     if(AppAlarm.state != APP_ALARM_STATE_OFF) {
         if(AppAlarm.sH == curr_dt.hour && AppAlarm.sM == curr_dt.minute && !curr_dt.second) {
             AppAlarm.state = APP_ALARM_STATE_BZZZ;
-            if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) SetRing(1);
+            if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) {
+                SetRing(1);
+                notification_BZZZT(AppAlarm.tntMode1_param);
+            }
             if(AppAlarm.tntMode2 == 1) SetTNTmode2(1);
         }
     }
 
     if(AppAlarm.state == APP_ALARM_STATE_BZZZ) {
         showScreen(SCREEN_ID_ALARM);
-        if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1)
+        if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) {
+            bzzzt_busy = 1;
             notification_BZZZT(AppAlarm.tntMode1_param);
+        }
     }
 
     int ats = AppTimer.state;
@@ -1109,12 +1127,16 @@ void OnTimerTick() {
         else {
             AppTimer.state = APP_TIMER_STATE_BZZZ;
             showScreen(SCREEN_ID_TIMER);
-            if(AppTimer.tntMode1 == 1) SetRing(1);
+            if(AppTimer.tntMode1 == 1) {
+                SetRing(1);
+                notification_BZZZT(AppTimer.tntMode1_param);
+            }
             if(AppTimer.tntMode2 == 1) SetTNTmode2(1);
         }
     }
     if(ats == APP_TIMER_STATE_BZZZ) {
-        if(AppTimer.tntMode1 == 1) notification_BZZZT(AppTimer.tntMode1_param);
+        showScreen(SCREEN_ID_TIMER);
+        if(AppTimer.tntMode1 == 1 && !bzzzt_busy) notification_BZZZT(AppTimer.tntMode1_param);
     }
 }
 
