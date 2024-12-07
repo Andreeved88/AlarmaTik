@@ -989,39 +989,21 @@ void AppConfigKey(int key) {
         return;
     }
     if(key == InputKeyLeft) {
-        if(AppConfig.selected == 0) {
-            AppGlobal.lang = 0;
-        }
-        if(AppConfig.selected == 1) {
-            AppGlobal.font = 0;
-        }
-        if(AppConfig.selected == 2) {
-            AppGlobal.ir_detection = 0;
-        }
+        if(AppConfig.selected == 0) AppGlobal.lang = 0;
+        if(AppConfig.selected == 1) AppGlobal.font = 0;
+        if(AppConfig.selected == 2) AppGlobal.ir_detection = 0;
         return;
     }
     if(key == InputKeyRight) {
-        if(AppConfig.selected == 0) {
-            AppGlobal.lang = 1;
-        }
-        if(AppConfig.selected == 1) {
-            AppGlobal.font = 1;
-        }
-        if(AppConfig.selected == 2) {
-            AppGlobal.ir_detection = 1;
-        }
+        if(AppConfig.selected == 0) AppGlobal.lang = 1;
+        if(AppConfig.selected == 1) AppGlobal.font = 1;
+        if(AppConfig.selected == 2) AppGlobal.ir_detection = 1;
         return;
     }
     if(key == InputKeyOk) {
-        if(AppConfig.selected == 0) {
-            AppGlobal.lang = !AppGlobal.lang;
-        }
-        if(AppConfig.selected == 1) {
-            AppGlobal.font = !AppGlobal.font;
-        }
-        if(AppConfig.selected == 2) {
-            AppGlobal.ir_detection = !AppGlobal.ir_detection;
-        }
+        if(AppConfig.selected == 0) AppGlobal.lang = !AppGlobal.lang;
+        if(AppConfig.selected == 1) AppGlobal.font = !AppGlobal.font;
+        if(AppConfig.selected == 2) AppGlobal.ir_detection = !AppGlobal.ir_detection;
         return;
     }
     if(key == InputKeyBack) {
@@ -1058,11 +1040,15 @@ void AppBzzztKey(int key) {
         return;
     }
     if(key == InputKeyUp) {
-        if(AppBzzzt.selected > 0) AppBzzzt.selected--;
+        if(AppBzzzt.selected > 0)
+            AppBzzzt.selected--;
+        else
+            AppBzzzt.selected = 2;
         return;
     }
     if(key == InputKeyDown) {
-        if(AppBzzzt.selected < 2) AppBzzzt.selected++;
+        AppBzzzt.selected++;
+        if(AppBzzzt.selected > 2) AppBzzzt.selected = 0;
         return;
     }
     if(key == InputKeyOk) {
@@ -1106,6 +1092,7 @@ void OnTimerTick() {
             AppAlarm.state = APP_ALARM_STATE_BZZZ;
             if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) {
                 SetRing(1);
+                bzzzt_busy = 1;
                 notification_BZZZT(AppAlarm.tntMode1_param);
             }
             if(AppAlarm.tntMode2 == 1) SetTNTmode2(1);
