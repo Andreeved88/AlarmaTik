@@ -1,5 +1,6 @@
 #include "F0App.h"
-#include "F0CustomFonts.h"
+#include "alarmatik_icons.h"
+#include "F0BigData.h"
 extern F0App* FApp;
 
 char* CaptionsRus[] = {"[0]",     "Выкл",        "Вкл",   "Сброс",     "Пуск",
@@ -33,7 +34,7 @@ App_Global_Data AppGlobal = {
     .ir_detection = 0};
 
 App_Alarm_Data AppAlarm = {
-    .selected = 1,
+    .selected = 0,
     .selectedExt = 0,
     .sH = 6,
     .sH_old = 0,
@@ -48,7 +49,7 @@ App_Alarm_Data AppAlarm = {
     .prior = 0};
 
 App_Timer_Data AppTimer = {
-    .selected = 2,
+    .selected = 1,
     .selectedExt = 0,
     .count = 300,
     .expected_count = 300,
@@ -201,12 +202,7 @@ int AppDeinit() {
     return 0;
 }
 
-void elements_progress_bar_vertical(
-    Canvas* canvas,
-    uint8_t x,
-    uint8_t y,
-    uint8_t height,
-    float progress) {
+void elements_progress_bar_vertical(Canvas* canvas, int x, int y, int height, float progress) {
     furi_assert(canvas);
     furi_assert((progress >= 0) && (progress <= 1.0));
     uint8_t width = 7;
@@ -249,7 +245,7 @@ void Draw(Canvas* canvas, void* ctx) {
         AppTimer.count % 60);
     snprintf(alarm_string, TIME_STR_SIZE, "%.2d:%.2d", AppAlarm.sH, AppAlarm.sM);
 
-    if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { //MAIN SCREEN
+    if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { //ЧАСЫ
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
         canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
         if(AppGlobal.dspBrightnessBarFrames) {
@@ -282,7 +278,6 @@ void Draw(Canvas* canvas, void* ctx) {
             }
         }
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_STOPWATCH) { //СЕКУНДОМЕР
         int32_t elapsed_secs = AppStopwatch.running ? (curr_ts - AppStopwatch.start_timestamp) :
                                                       AppStopwatch.stopped_seconds;
@@ -305,28 +300,17 @@ void Draw(Canvas* canvas, void* ctx) {
         else
             elements_button_center(canvas, getStr(STR_GLOBAL_START));
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_TIMER) { //ТАЙМЕР
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
         canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, timer_string);
         if(AppTimer.count && AppTimer.state != APP_TIMER_STATE_OFF)
             elements_progress_bar(
-                canvas, 0, 0, 128, (1.0 * AppTimer.count / AppTimer.expected_count));
+                canvas, 0, 10, 128, (1.0 * AppTimer.count / AppTimer.expected_count));
         ApplyFont(canvas);
-
+        canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, time_string);
+        canvas_draw_str_aligned(canvas, 128, 0, AlignRight, AlignTop, date_string);
         if(AppTimer.state == APP_TIMER_STATE_OFF) {
-            int shiftX = 0;
-            switch(AppTimer.selected) {
-            case 1:
-                shiftX = 10;
-                break;
-            case 2:
-                shiftX = 50;
-                break;
-            case 3:
-                shiftX = 90;
-                break;
-            }
+            int shiftX = 10 + AppTimer.selected * 40;
             canvas_draw_rframe(canvas, shiftX - 1, TIME_POS_Y - 25, 32, 19, 2);
             canvas_draw_rframe(canvas, shiftX - 2, TIME_POS_Y - 26, 34, 21, 2);
             elements_button_center(canvas, getStr(STR_GLOBAL_START));
@@ -346,10 +330,9 @@ void Draw(Canvas* canvas, void* ctx) {
         }
         return;
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_ALARM) { //БУДИЛЬНИК
         int shiftX = TIME_POS_X + 20;
-        if(AppAlarm.selected == 2) shiftX = TIME_POS_X + 60;
+        if(AppAlarm.selected == 1) shiftX = TIME_POS_X + 60;
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
         canvas_draw_str(canvas, TIME_POS_X + 20, TIME_POS_Y, alarm_string);
 
@@ -368,8 +351,7 @@ void Draw(Canvas* canvas, void* ctx) {
             elements_button_center(canvas, getStr(STR_GLOBAL_ON));
         return;
     }
-
-    if(AppGlobal.selectedScreen == SCREEN_ID_CONFIG) {
+    if(AppGlobal.selectedScreen == SCREEN_ID_CONFIG) { //НАСТРОЙКИ
         int x = 3, y = 3;
 
         canvas_draw_rframe(canvas, 0, (AppConfig.selected * 13), 128, 13, 2);
@@ -396,7 +378,6 @@ void Draw(Canvas* canvas, void* ctx) {
         else
             canvas_draw_str_aligned(canvas, 125, y, AlignRight, AlignTop, getStr(STR_GLOBAL_ON));
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_ALARM_EXT) {
         int x = 0, y = 0, w = 128, h = 64;
         canvas_draw_rframe(canvas, x, y, w, h, 1);
@@ -422,7 +403,6 @@ void Draw(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, x + w - 5, y + 26, AlignRight, AlignTop, getStr(str_id3));
         if(AppAlarm.selectedExt == 0) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_TIMER_EXT) {
         int x = 0, y = 0, w = 128, h = 64;
         canvas_draw_rframe(canvas, x, y, w, h, 1);
@@ -445,7 +425,6 @@ void Draw(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, x + w - 5, y + 13, AlignRight, AlignTop, getStr(str_id2));
         if(AppTimer.selectedExt == 0) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
-
     if(AppGlobal.selectedScreen == SCREEN_ID_BZZZT_SET) {
         int x = 0, y = 0, w = 128, h = 64;
         canvas_draw_rframe(canvas, x, y, w, h, 1);
@@ -498,30 +477,30 @@ int KeyProc(int type, int key) {
     if(type == InputTypeRepeat) {
         if(key == InputKeyUp) {
             if(ss == SCREEN_ID_TIME) {
-                AppTimeKeyUp();
+                AppTimeKey(InputKeyUp);
                 return 0;
             }
             if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyUp();
+                AppTimerKey(InputKeyUp);
                 return 0;
             }
             if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyUp();
+                AppAlarmKey(InputKeyUp);
                 return 0;
             }
             return 0;
         }
         if(key == InputKeyDown) {
             if(ss == SCREEN_ID_TIME) {
-                AppTimeKeyDown();
+                AppTimeKey(InputKeyDown);
                 return 0;
             }
             if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyDown();
+                AppTimerKey(InputKeyDown);
                 return 0;
             }
             if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyDown();
+                AppAlarmKey(InputKeyDown);
                 return 0;
             }
             return 0;
@@ -529,8 +508,24 @@ int KeyProc(int type, int key) {
         return 0;
     }
     if(type == InputTypeShort) {
+        if(ss == SCREEN_ID_TIME) {
+            AppTimeKey(key);
+            return 0;
+        }
+        if(ss == SCREEN_ID_STOPWATCH) {
+            AppStopwatchKey(key);
+            return 0;
+        }
+        if(ss == SCREEN_ID_ALARM) {
+            AppAlarmKey(key);
+            return 0;
+        }
         if(ss == SCREEN_ID_ALARM_EXT) {
             AppAlarmExtKey(key);
+            return 0;
+        }
+        if(ss == SCREEN_ID_TIMER) {
+            AppTimerKey(key);
             return 0;
         }
         if(ss == SCREEN_ID_TIMER_EXT) {
@@ -545,345 +540,262 @@ int KeyProc(int type, int key) {
             AppConfigKey(key);
             return 0;
         }
-        if(key == InputKeyBack) {
-            if(ss == SCREEN_ID_STOPWATCH) {
-                showScreen(SCREEN_ID_TIME);
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyBack();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyBack();
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIME) AppGlobal.show_time_only = !AppGlobal.show_time_only;
-            return 0;
-        }
-        if(key == InputKeyOk) {
-            if(ss == SCREEN_ID_STOPWATCH) {
-                AppStopwatchToggle();
-                notification_beep_once();
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIME) {
-                showScreen(SCREEN_ID_STOPWATCH);
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyOk();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyOk();
-                return 0;
-            }
-            return 0;
-        }
-        if(key == InputKeyUp) {
-            if(ss == SCREEN_ID_TIME) {
-                AppTimeKeyUp();
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyUp();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyUp();
-                return 0;
-            }
-            return 0;
-        }
-        if(key == InputKeyDown) {
-            if(ss == SCREEN_ID_TIME) {
-                AppTimeKeyDown();
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyDown();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyDown();
-                return 0;
-            }
-            return 0;
-        }
-        if(key == InputKeyLeft) {
-            if(ss == SCREEN_ID_STOPWATCH) {
-                AppStopwatchReset();
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIME) {
-                showScreen(SCREEN_ID_ALARM);
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyLeft();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyLeft();
-                return 0;
-            }
-            return 0;
-        }
-        if(key == InputKeyRight) {
-            if(ss == SCREEN_ID_TIME) {
-                showScreen(SCREEN_ID_TIMER);
-                return 0;
-            }
-            if(ss == SCREEN_ID_TIMER) {
-                AppTimerKeyRight();
-                return 0;
-            }
-            if(ss == SCREEN_ID_ALARM) {
-                AppAlarmKeyRight();
-                return 0;
-            }
-            return 0;
-        }
         return 0;
     }
     return 0;
 }
 
-void AppTimeKeyUp() {
-    AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
-    if(AppGlobal.brightness < 100) {
-        if(AppGlobal.led) {
-            AppGlobal.led = 0;
-            ResetLED();
+void AppStopwatchKey(int key) {
+    if(key == InputKeyLeft) {
+        if(AppStopwatch.start_timestamp) {
+            AppStopwatch.running = 0;
+            AppStopwatch.start_timestamp = 0;
+            AppStopwatch.stopped_seconds = 0;
         }
-        AppGlobal.brightness += 10;
+        return;
     }
-    if(AppGlobal.brightness > 100) AppGlobal.brightness = 100;
-    SetScreenBacklightBrightness(AppGlobal.brightness);
-}
-void AppTimeKeyDown() {
-    AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
-    if(AppGlobal.brightness > 0) {
-        AppGlobal.brightness -= 10;
-        if(AppGlobal.brightness == 0) {
-            AppGlobal.led = true;
-            SetLED(255, 0, 0, 0.1);
+    if(key == InputKeyOk) {
+        uint32_t curr_ts = furi_hal_rtc_get_timestamp();
+        if(AppStopwatch.running)
+            AppStopwatch.stopped_seconds = curr_ts - AppStopwatch.start_timestamp;
+        else {
+            if(!AppStopwatch.start_timestamp)
+                AppStopwatch.start_timestamp = curr_ts;
+            else
+                AppStopwatch.start_timestamp = curr_ts - AppStopwatch.stopped_seconds;
         }
-    } else if(AppGlobal.brightness == 0) {
-        AppGlobal.led = !AppGlobal.led;
-        if(AppGlobal.led)
-            SetLED(255, 0, 0, 0.1);
-        else
-            ResetLED();
-    }
-    SetScreenBacklightBrightness(AppGlobal.brightness);
-}
-
-void AppStopwatchToggle() {
-    uint32_t curr_ts = furi_hal_rtc_get_timestamp();
-    if(AppStopwatch.running)
-        AppStopwatch.stopped_seconds = curr_ts - AppStopwatch.start_timestamp;
-    else {
-        if(!AppStopwatch.start_timestamp)
-            AppStopwatch.start_timestamp = curr_ts;
-        else
-            AppStopwatch.start_timestamp = curr_ts - AppStopwatch.stopped_seconds;
-    }
-    AppStopwatch.running = !AppStopwatch.running;
-}
-void AppStopwatchReset() {
-    if(AppStopwatch.start_timestamp) {
-        AppStopwatch.running = 0;
-        AppStopwatch.start_timestamp = 0;
-        AppStopwatch.stopped_seconds = 0;
-    }
-}
-
-void AppTimerKeyUp() {
-    if(AppTimer.state != APP_TIMER_STATE_OFF) return;
-    switch(AppTimer.selected) {
-    case 1:
-        AppTimer.count += 60 * 60;
-        break;
-    case 2:
-        AppTimer.count += 60;
-        break;
-    case 3:
-        AppTimer.count += 1;
-        break;
-    default:
-        break;
-    }
-    if(AppTimer.count > 100 * 60 * 60 - 1) AppTimer.count = 100 * 60 * 60 - 1;
-    AppTimer.expected_count = AppTimer.count;
-}
-void AppTimerKeyDown() {
-    if(AppTimer.state != APP_TIMER_STATE_OFF) return;
-    switch(AppTimer.selected) {
-    case 1:
-        AppTimer.count -= 60 * 60;
-        break;
-    case 2:
-        AppTimer.count -= 60;
-        break;
-    case 3:
-        AppTimer.count -= 1;
-        break;
-    default:
-        break;
-    }
-    if(AppTimer.count < 0) AppTimer.count = 0;
-    AppTimer.expected_count = AppTimer.count;
-}
-void AppTimerKeyOk() {
-    int ats = AppTimer.state;
-    if(ats == APP_TIMER_STATE_OFF || ats == APP_TIMER_STATE_PAUSE) { //ON
-        if(!AppTimer.count) return;
-        AppTimer.state = APP_TIMER_STATE_ON;
+        AppStopwatch.running = !AppStopwatch.running;
         notification_beep_once();
         return;
     }
+    if(key == InputKeyBack) {
+        showScreen(SCREEN_ID_TIME);
+        return;
+    }
+}
 
-    if(ats == APP_TIMER_STATE_ON) { //PAUSE
-        AppTimer.state = APP_TIMER_STATE_PAUSE;
+void AppTimeKey(int key) {
+    if(key == InputKeyUp) {
+        AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
+        if(AppGlobal.brightness < 100) {
+            if(AppGlobal.led) {
+                AppGlobal.led = 0;
+                ResetLED();
+            }
+            AppGlobal.brightness += 10;
+        }
+        if(AppGlobal.brightness > 100) AppGlobal.brightness = 100;
+        SetScreenBacklightBrightness(AppGlobal.brightness);
         return;
     }
+    if(key == InputKeyDown) {
+        AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
+        if(AppGlobal.brightness > 0) {
+            AppGlobal.brightness -= 10;
+            if(AppGlobal.brightness == 0) {
+                AppGlobal.led = true;
+                SetLED(255, 0, 0, 0.1);
+            }
+        } else if(AppGlobal.brightness == 0) {
+            AppGlobal.led = !AppGlobal.led;
+            if(AppGlobal.led)
+                SetLED(255, 0, 0, 0.1);
+            else
+                ResetLED();
+        }
+        SetScreenBacklightBrightness(AppGlobal.brightness);
+        return;
+    }
+    if(key == InputKeyLeft) {
+        showScreen(SCREEN_ID_ALARM);
+        return;
+    }
+    if(key == InputKeyRight) {
+        showScreen(SCREEN_ID_TIMER);
+        return;
+    }
+    if(key == InputKeyOk) {
+        showScreen(SCREEN_ID_STOPWATCH);
+        return;
+    }
+    if(key == InputKeyBack) {
+        AppGlobal.show_time_only = !AppGlobal.show_time_only;
+        return;
+    }
+}
 
-    if(AppTimer.state == APP_TIMER_STATE_BZZZ) { //RESET
-        AppTimerReset();
-        if(AppTimer.tntMode1 == 1) SetRing(0);
-        if(AppTimer.tntMode2 == 1) SetTNTmode2(0);
+void AppTimerKey(int key) {
+    if(key == InputKeyUp) {
+        if(AppTimer.state != APP_TIMER_STATE_OFF) return;
+        if(AppTimer.selected == 0) AppTimer.count += 60 * 60;
+        if(AppTimer.selected == 1) AppTimer.count += 60;
+        if(AppTimer.selected == 2) AppTimer.count += 1;
+        if(AppTimer.count > 100 * 60 * 60 - 1) AppTimer.count = 100 * 60 * 60 - 1;
+        AppTimer.expected_count = AppTimer.count;
         return;
     }
-}
-void AppTimerKeyBack() {
-    if(AppTimer.state == APP_TIMER_STATE_BZZZ) {
-        AppTimerReset();
-        if(AppTimer.tntMode1 == 1) SetRing(0);
-        if(AppTimer.tntMode2 == 1) SetTNTmode2(0);
-    }
-    AppGlobal.selectedScreen = SCREEN_ID_TIME;
-}
-void AppTimerKeyLeft() { //RESET
-    if(AppTimer.state == APP_TIMER_STATE_OFF) {
-        AppTimer.selected--;
-        if(!AppTimer.selected) AppTimer.selected = 3;
-        return;
-    }
+    if(key == InputKeyDown) {
+        if(AppTimer.state != APP_TIMER_STATE_OFF) return;
+        if(AppTimer.selected == 0) AppTimer.count -= 60 * 60;
+        if(AppTimer.selected == 1) AppTimer.count -= 60;
+        if(AppTimer.selected == 2) AppTimer.count -= 1;
 
-    if(AppTimer.state == APP_TIMER_STATE_PAUSE) {
-        AppTimerReset();
+        if(AppTimer.count < 0) AppTimer.count = 0;
+        AppTimer.expected_count = AppTimer.count;
+        return;
+    }
+    if(key == InputKeyLeft) {
+        if(AppTimer.state == APP_TIMER_STATE_OFF) {
+            if(!AppTimer.selected) AppTimer.selected = 3;
+            AppTimer.selected--;
+            return;
+        }
+
+        if(AppTimer.state == APP_TIMER_STATE_PAUSE) {
+            AppTimerReset();
+            return;
+        }
+        return;
+    }
+    if(key == InputKeyRight) {
+        if(AppTimer.state == APP_TIMER_STATE_OFF) {
+            AppTimer.selected++;
+            if(AppTimer.selected > 2) AppTimer.selected = 0;
+        }
+        return;
+    }
+    if(key == InputKeyOk) {
+        int ats = AppTimer.state;
+        if(ats == APP_TIMER_STATE_OFF || ats == APP_TIMER_STATE_PAUSE) { //ON
+            if(!AppTimer.count) return;
+            AppTimer.state = APP_TIMER_STATE_ON;
+            notification_beep_once();
+            return;
+        }
+
+        if(ats == APP_TIMER_STATE_ON) { //PAUSE
+            AppTimer.state = APP_TIMER_STATE_PAUSE;
+            return;
+        }
+
+        if(AppTimer.state == APP_TIMER_STATE_BZZZ) { //RESET
+            AppTimerReset();
+            if(AppTimer.tntMode1 == 1) SetRing(0);
+            if(AppTimer.tntMode2 == 1) SetTNTmode2(0);
+            return;
+        }
+        return;
+    }
+    if(key == InputKeyBack) {
+        if(AppTimer.state == APP_TIMER_STATE_BZZZ) {
+            AppTimerReset();
+            if(AppTimer.tntMode1 == 1) SetRing(0);
+            if(AppTimer.tntMode2 == 1) SetTNTmode2(0);
+        }
+        AppGlobal.selectedScreen = SCREEN_ID_TIME;
         return;
     }
 }
-void AppTimerKeyRight() {
-    if(AppTimer.state == APP_TIMER_STATE_OFF) {
-        AppTimer.selected++;
-        if(AppTimer.selected == 4) AppTimer.selected = 1;
-    }
-}
+
 void AppTimerReset() {
     AppTimer.state = APP_TIMER_STATE_OFF;
     AppTimer.count = AppTimer.expected_count;
 }
 
-void AppAlarmKeyUp() {
-    switch(AppAlarm.selected) {
-    case 1:
-        ++AppAlarm.sH;
-        if(AppAlarm.sH == 24) AppAlarm.sH = 0;
-        break;
-    case 2:
-        ++AppAlarm.sM;
-        if(AppAlarm.sM == 60) AppAlarm.sM = 0;
-        break;
-    default:
-        break;
-    }
-    AppAlarm.sH_old = AppAlarm.sH;
-    AppAlarm.sM_old = AppAlarm.sM;
-}
-void AppAlarmKeyDown() {
-    switch(AppAlarm.selected) {
-    case 1:
-        if(AppAlarm.sH == 0)
-            AppAlarm.sH = 23;
-        else
-            AppAlarm.sH--;
-        break;
-    case 2:
-        if(AppAlarm.sM == 0)
-            AppAlarm.sM = 59;
-        else
-            AppAlarm.sM--;
-        break;
-    default:
-        break;
-    }
-    AppAlarm.sH_old = AppAlarm.sH;
-    AppAlarm.sM_old = AppAlarm.sM;
-}
-void AppAlarmKeyLeft() {
-    AppAlarm.selected = 1;
-    return;
-}
-void AppAlarmKeyRight() {
-    AppAlarm.selected = 2;
-    return;
-}
-void AppAlarmKeyOk() {
-    if(AppAlarm.state == APP_ALARM_STATE_OFF) {
-        AppAlarm.state = APP_ALARM_STATE_ON;
-        if(AppAlarm.prior == 1) {
-            DateTime dt;
-            dt.hour = AppAlarm.sH;
-            dt.minute = AppAlarm.sM;
-            furi_hal_rtc_set_alarm(&dt, 1);
+void AppAlarmKey(int key) {
+    if(key == InputKeyUp) {
+        switch(AppAlarm.selected) {
+        case 0:
+            ++AppAlarm.sH;
+            if(AppAlarm.sH == 24) AppAlarm.sH = 0;
+            break;
+        case 1:
+            ++AppAlarm.sM;
+            if(AppAlarm.sM == 60) AppAlarm.sM = 0;
+            break;
         }
+        AppAlarm.sH_old = AppAlarm.sH;
+        AppAlarm.sM_old = AppAlarm.sM;
         return;
-    };
-
-    if(AppAlarm.state == APP_ALARM_STATE_ON || AppAlarm.state == APP_ALARM_STATE_SLEEP) {
-        AppAlarm.state = APP_ALARM_STATE_OFF;
-        AppAlarm.sH = AppAlarm.sH_old;
-        AppAlarm.sM = AppAlarm.sM_old;
-        if(AppAlarm.prior == 1) {
-            DateTime dt;
-            dt.hour = AppAlarm.sH;
-            dt.minute = AppAlarm.sM;
-            furi_hal_rtc_set_alarm(&dt, 0);
+    }
+    if(key == InputKeyDown) {
+        switch(AppAlarm.selected) {
+        case 0:
+            if(AppAlarm.sH == 0)
+                AppAlarm.sH = 23;
+            else
+                AppAlarm.sH--;
+            break;
+        case 1:
+            if(AppAlarm.sM == 0)
+                AppAlarm.sM = 59;
+            else
+                AppAlarm.sM--;
+            break;
         }
+        AppAlarm.sH_old = AppAlarm.sH;
+        AppAlarm.sM_old = AppAlarm.sM;
         return;
-    };
-
-    if(AppAlarm.state == APP_ALARM_STATE_BZZZ) {
-        AppAlarm.state = APP_ALARM_STATE_SLEEP;
-        AppAlarm.sM += 5;
-        if(AppAlarm.sM > 59) {
-            AppAlarm.sM = AppAlarm.sM - 60;
-            AppAlarm.sH++;
-            if(AppAlarm.sH > 23) AppAlarm.sH = 0;
+    }
+    if(key == InputKeyLeft || key == InputKeyRight) {
+        AppAlarm.selected = !AppAlarm.selected;
+        return;
+    }
+    if(key == InputKeyOk) {
+        if(AppAlarm.state == APP_ALARM_STATE_OFF) {
+            AppAlarm.state = APP_ALARM_STATE_ON;
             if(AppAlarm.prior == 1) {
                 DateTime dt;
                 dt.hour = AppAlarm.sH;
                 dt.minute = AppAlarm.sM;
                 furi_hal_rtc_set_alarm(&dt, 1);
-            };
-            if(AppAlarm.tntMode1 == 1) SetRing(0);
-            if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
-            showScreen(SCREEN_ID_TIME);
+            }
             return;
         };
+
+        if(AppAlarm.state == APP_ALARM_STATE_ON || AppAlarm.state == APP_ALARM_STATE_SLEEP) {
+            AppAlarm.state = APP_ALARM_STATE_OFF;
+            AppAlarm.sH = AppAlarm.sH_old;
+            AppAlarm.sM = AppAlarm.sM_old;
+            if(AppAlarm.prior == 1) {
+                DateTime dt;
+                dt.hour = AppAlarm.sH;
+                dt.minute = AppAlarm.sM;
+                furi_hal_rtc_set_alarm(&dt, 0);
+            }
+            return;
+        };
+
+        if(AppAlarm.state == APP_ALARM_STATE_BZZZ) {
+            AppAlarm.state = APP_ALARM_STATE_SLEEP;
+            AppAlarm.sM += 5;
+            if(AppAlarm.sM > 59) {
+                AppAlarm.sM = AppAlarm.sM - 60;
+                AppAlarm.sH++;
+                if(AppAlarm.sH > 23) AppAlarm.sH = 0;
+                if(AppAlarm.prior == 1) {
+                    DateTime dt;
+                    dt.hour = AppAlarm.sH;
+                    dt.minute = AppAlarm.sM;
+                    furi_hal_rtc_set_alarm(&dt, 1);
+                };
+                if(AppAlarm.tntMode1 == 1) SetRing(0);
+                if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
+                showScreen(SCREEN_ID_TIME);
+                return;
+            };
+        }
+        return;
     }
-}
-void AppAlarmKeyBack() {
-    if(AppAlarm.state == APP_ALARM_STATE_BZZZ) AppAlarm.state = APP_ALARM_STATE_SLEEP;
-    if(AppAlarm.tntMode1 == 1) SetRing(0);
-    if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
-    showScreen(SCREEN_ID_TIME);
-    AppAlarm.sH = AppAlarm.sH_old;
-    AppAlarm.sM = AppAlarm.sM_old;
+    if(key == InputKeyBack) {
+        if(AppAlarm.state == APP_ALARM_STATE_BZZZ) AppAlarm.state = APP_ALARM_STATE_SLEEP;
+        if(AppAlarm.tntMode1 == 1) SetRing(0);
+        if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
+        showScreen(SCREEN_ID_TIME);
+        AppAlarm.sH = AppAlarm.sH_old;
+        AppAlarm.sM = AppAlarm.sM_old;
+        return;
+    }
 }
 
 void AppAlarmExtKey(int key) {
@@ -1013,18 +925,12 @@ void AppConfigKey(int key) {
 }
 
 void AppBzzztLoadParam(int p) {
-    if(p & BZZZT_FLAG_BLINK)
-        AppBzzzt.b = 1;
-    else
-        AppBzzzt.b = 0;
-    if(p & BZZZT_FLAG_VIBRO)
-        AppBzzzt.v = 1;
-    else
-        AppBzzzt.v = 0;
-    if(p & BZZZT_FLAG_SOUND)
-        AppBzzzt.s = 1;
-    else
-        AppBzzzt.s = 0;
+    AppBzzzt.b = 0;
+    AppBzzzt.v = 0;
+    AppBzzzt.s = 0;
+    if(p & BZZZT_FLAG_BLINK) AppBzzzt.b = 1;
+    if(p & BZZZT_FLAG_VIBRO) AppBzzzt.v = 1;
+    if(p & BZZZT_FLAG_SOUND) AppBzzzt.s = 1;
 }
 void AppBzzztKey(int key) {
     if(key == InputKeyLeft) {
@@ -1081,9 +987,8 @@ void OnTimerTick() {
     if(AppGlobal.ringing) {
         if(AppGlobal.irRecieved) {
             SetRing(0);
-            AppGlobal.irRecieved = 0;
-            if(AppGlobal.selectedScreen == SCREEN_ID_TIMER) AppTimerKeyBack();
-            if(AppGlobal.selectedScreen == SCREEN_ID_ALARM) AppAlarmKeyBack();
+            if(AppGlobal.selectedScreen == SCREEN_ID_TIMER) AppTimerKey(InputKeyBack);
+            if(AppGlobal.selectedScreen == SCREEN_ID_ALARM) AppAlarmKey(InputKeyBack);
         }
     }
 

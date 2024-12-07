@@ -14,7 +14,7 @@ static void F0App_draw_callback(Canvas* canvas, void* ctx) {
 }
 
 static void F0App_input_callback(InputEvent* input_event, void* ctx) {
-    //    furi_assert(ctx);
+    furi_assert(ctx);
     furi_message_queue_put((FuriMessageQueue*)ctx, input_event, FuriWaitForever);
 }
 

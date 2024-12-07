@@ -1,9 +1,7 @@
-#include "alarmatik_icons.h"
-#include "BigData.h"
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
-#define CFG_VERSION           6
+#define CFG_VERSION           7
 #define CLOCK_RFC_DATE_FORMAT "%s %.2d.%.2d.%.4d"
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define TIMER_TIME_FORMAT     "%02ld:%02ld:%02ld"
@@ -38,7 +36,7 @@ typedef struct {
     bool show_time_only;
     int lang;
     int font;
-    int ir_detection;
+    bool ir_detection;
 } App_Global_Data;
 
 #define APP_TIMER_STATE_OFF   0
@@ -115,23 +113,11 @@ void notification_BZZZT(int params);
 void showScreen(int id);
 void ApplyFont(Canvas* c);
 char* getStr(int id);
-void AppTimeKeyUp();
-void AppTimeKeyDown();
-void AppStopwatchToggle();
-void AppStopwatchReset();
-void AppTimerKeyUp();
-void AppTimerKeyDown();
-void AppTimerKeyOk();
-void AppTimerKeyBack();
-void AppTimerKeyLeft();
-void AppTimerKeyRight();
+void AppStopwatchKey(int key);
+void AppTimeKey(int key);
 void AppTimerReset();
-void AppAlarmKeyUp();
-void AppAlarmKeyDown();
-void AppAlarmKeyLeft();
-void AppAlarmKeyRight();
-void AppAlarmKeyOk();
-void AppAlarmKeyBack();
+void AppTimerKey(int key);
+void AppAlarmKey(int key);
 void AppAlarmExtKey(int key);
 void AppTimerExtKey(int key);
 void AppConfigKey(int key);
