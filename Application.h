@@ -100,8 +100,11 @@ typedef struct {
 
 typedef struct {
     bool running;
-    uint32_t start_timestamp;
-    uint32_t stopped_seconds;
+    uint32_t start_tick;
+    uint32_t stopped_tick;
+    uint32_t slot[146];
+    int slot_id; //slot for writing
+    int curr_slot;
 } App_Stopwatch_Data;
 
 int AppInit();

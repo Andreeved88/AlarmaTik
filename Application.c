@@ -3,20 +3,19 @@
 #include "F0BigData.h"
 extern F0App* FApp;
 
-char* CaptionsRus[] = {"[0]",     "Выкл",        "Вкл",   "Сброс",     "Пуск",
-                       "Стоп",    "Lang / Язык", "Рус",   "Eng",       "Пакет рун",
-                       "База",    "Система",     "БЗЗЗТ", "C3+ B2-",   "ИК приёмник",
-                       "Буд",     "Сек",         "Тмр",   "Спать",     "Режим",
-                       "Настр",   "Пнд",         "Втр",   "Срд",       "Чтр",
-                       "Птн",     "Сбт",         "Вск",   "Приоритет", "Встроенный",
-                       "Внешний", "Равный",      "Вибро", "Мигалка",   "Пикалка"};
+char* CaptionsRus[] = {
+    "[0]",   "Выкл",      "Вкл",     "Сброс",   "Пуск",      "Стоп",       "Lang / Язык", "Рус",
+    "Eng",   "Пакет рун", "База",    "Система", "БЗЗЗТ",     "C3+ B2-",    "ИК приёмник", "Буд",
+    "Хрон",  "Тмр",       "Спать",   "Режим",   "Настройка", "Пнд",        "Втр",         "Срд",
+    "Чтр",   "Птн",       "Сбт",     "Вск",     "Приоритет", "Встроенный", "Внешний",     "Равный",
+    "Вибро", "Мигалка",   "Пикалка", "Зап"};
 
 char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",     "Stop",
                        "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal",  "System",
-                       "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "SW",        "Timer",
+                       "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "Chrono",    "Timer",
                        "Sleep",       "Action",  "Set",         "Mon",   "Tue",       "Wed",
                        "Thr",         "Fri",     "Sat",         "Sun",   "Приоритет", "Встроенный",
-                       "Внешний",     "Равный",  "Vibro",       "Blink", "Sounds"};
+                       "Внешний",     "Равный",  "Vibro",       "Blink", "Sounds",    "Write"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -61,7 +60,8 @@ App_Timer_Data AppTimer = {
 
 App_Config_Data AppConfig = {.selected = 0};
 App_Bzzzt_Data AppBzzzt = {.selected = 0, .v = 1, .s = 1, .b = 1};
-App_Stopwatch_Data AppStopwatch = {.running = 0, .start_timestamp = 0, .stopped_seconds = 0};
+App_Stopwatch_Data AppStopwatch =
+    {.running = 0, .start_tick = 0, .stopped_tick = 0, .slot_id = 0, .curr_slot = 0};
 char time_string[TIME_STR_SIZE];
 char date_string[TIME_STR_SIZE];
 char timer_string[TIME_STR_SIZE];
@@ -74,7 +74,7 @@ InfraredWorker* worker;
 static const NotificationSequence sequence_beep = {
     &message_blue_255,
     &message_note_c8,
-    &message_delay_100,
+    &message_delay_50,
     &message_sound_off,
     NULL,
 };
@@ -106,7 +106,6 @@ static NotificationSequence sequence_bzzzt = {
 void notification_beep_once() {
     notification_message(FApp->Notificator, &sequence_beep);
 }
-
 void notification_BZZZT(int params) {
     bool v = params & BZZZT_FLAG_VIBRO;
     bool b = params & BZZZT_FLAG_BLINK;
@@ -218,7 +217,6 @@ void elements_progress_bar_vertical(Canvas* canvas, int x, int y, int height, fl
 void Draw(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
     furi_hal_rtc_get_datetime(&curr_dt);
-    uint32_t curr_ts = datetime_datetime_to_timestamp(&curr_dt);
     snprintf(
         time_string,
         TIME_STR_SIZE,
@@ -279,26 +277,40 @@ void Draw(Canvas* canvas, void* ctx) {
         }
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_STOPWATCH) { //СЕКУНДОМЕР
-        int32_t elapsed_secs = AppStopwatch.running ? (curr_ts - AppStopwatch.start_timestamp) :
-                                                      AppStopwatch.stopped_seconds;
-        snprintf(
-            stopwatch_string,
-            TIME_STR_SIZE,
-            "%.2ld:%.2ld:%.2ld",
-            elapsed_secs / 3600,
-            elapsed_secs / 60,
-            elapsed_secs % 60);
 
+        int32_t elapsed_msecs = AppStopwatch.stopped_tick;
+        if(AppStopwatch.running) elapsed_msecs = furi_get_tick() - AppStopwatch.start_tick;
+        int32_t h = elapsed_msecs / 3600000, m = elapsed_msecs / 60000, s = elapsed_msecs / 1000,
+                ms = elapsed_msecs % 1000;
+        snprintf(stopwatch_string, 21, "%.2ld:%.2ld:%.2ld", h, m, s);
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
-        canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, stopwatch_string);
+        canvas_draw_str(canvas, 0, TIME_POS_Y, stopwatch_string);
         ApplyFont(canvas);
         canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, time_string);
         canvas_draw_str_aligned(canvas, 128, 0, AlignRight, AlignTop, date_string);
         elements_button_left(canvas, getStr(STR_GLOBAL_RESET));
-        if(AppStopwatch.running)
+        if(AppStopwatch.running) {
             elements_button_center(canvas, getStr(STR_GLOBAL_STOP));
-        else
+            elements_button_right(canvas, getStr(STR_STOPWATCH_WRITE));
+        } else {
             elements_button_center(canvas, getStr(STR_GLOBAL_START));
+            if(AppStopwatch.stopped_tick) {
+                char msec[7];
+                snprintf(msec, TIME_STR_SIZE, "%.2ld", ms);
+                canvas_draw_str_aligned(canvas, 128, TIME_POS_Y - 15, AlignRight, AlignTop, msec);
+            }
+        }
+        if(AppStopwatch.curr_slot) {
+            char str_res[40];
+            int32_t slot_ms = AppStopwatch.slot[AppStopwatch.curr_slot];
+            h = slot_ms / 3600000;
+            m = slot_ms / 60000;
+            s = slot_ms / 1000;
+            ms = slot_ms % 1000;
+            snprintf(
+                str_res, 40, "#%.d: %.2ld:%.2ld:%.2ld.%2ld", AppStopwatch.curr_slot, h, m, s, ms);
+            canvas_draw_str_aligned(canvas, 0, TIME_POS_Y - 5, AlignLeft, AlignTop, str_res);
+        }
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_TIMER) { //ТАЙМЕР
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
@@ -454,6 +466,20 @@ int KeyProc(int type, int key) {
     }
     int ss = AppGlobal.selectedScreen;
     if(type == InputTypeLong) {
+        if(key == InputKeyUp) {
+            if(ss == SCREEN_ID_STOPWATCH) {
+                if(AppStopwatch.slot_id)
+                    AppStopwatch.curr_slot = 1;
+                else
+                    AppStopwatch.curr_slot = 0;
+            }
+            return 0;
+        }
+        if(key == InputKeyDown) {
+            if(ss == SCREEN_ID_STOPWATCH) AppStopwatch.curr_slot = AppStopwatch.slot_id;
+            return 0;
+        }
+
         if(key == InputKeyBack) {
             if(ss == SCREEN_ID_TIME) return 255; //exit
             return 0;
@@ -547,22 +573,26 @@ int KeyProc(int type, int key) {
 
 void AppStopwatchKey(int key) {
     if(key == InputKeyLeft) {
-        if(AppStopwatch.start_timestamp) {
+        if(AppStopwatch.start_tick) {
             AppStopwatch.running = 0;
-            AppStopwatch.start_timestamp = 0;
-            AppStopwatch.stopped_seconds = 0;
+            AppStopwatch.start_tick = 0;
+            AppStopwatch.stopped_tick = 0;
+            AppStopwatch.slot_id = 0;
+            AppStopwatch.slot[0] = 0;
+            AppStopwatch.curr_slot = 0;
         }
         return;
     }
     if(key == InputKeyOk) {
-        uint32_t curr_ts = furi_hal_rtc_get_timestamp();
+        uint32_t curr_tick = furi_get_tick();
         if(AppStopwatch.running)
-            AppStopwatch.stopped_seconds = curr_ts - AppStopwatch.start_timestamp;
+            AppStopwatch.stopped_tick = curr_tick - AppStopwatch.start_tick;
         else {
-            if(!AppStopwatch.start_timestamp)
-                AppStopwatch.start_timestamp = curr_ts;
-            else
-                AppStopwatch.start_timestamp = curr_ts - AppStopwatch.stopped_seconds;
+            if(!AppStopwatch.start_tick) {
+                AppStopwatch.start_tick = curr_tick;
+                AppStopwatch.slot[0] = curr_tick;
+            } else
+                AppStopwatch.start_tick = curr_tick - AppStopwatch.stopped_tick;
         }
         AppStopwatch.running = !AppStopwatch.running;
         notification_beep_once();
@@ -570,6 +600,24 @@ void AppStopwatchKey(int key) {
     }
     if(key == InputKeyBack) {
         showScreen(SCREEN_ID_TIME);
+        return;
+    }
+    if(key == InputKeyUp) {
+        if(AppStopwatch.curr_slot > 1) AppStopwatch.curr_slot--;
+        return;
+    }
+    if(key == InputKeyDown) {
+        if(AppStopwatch.curr_slot < AppStopwatch.slot_id) AppStopwatch.curr_slot++;
+        return;
+    }
+    if(key == InputKeyRight) {
+        if(!AppStopwatch.running) return;
+        if(AppStopwatch.slot_id < 146) {
+            if(AppStopwatch.curr_slot == AppStopwatch.slot_id) AppStopwatch.curr_slot++;
+            AppStopwatch.slot_id++;
+            AppStopwatch.slot[AppStopwatch.slot_id] = furi_get_tick() - AppStopwatch.start_tick;
+        }
+        notification_beep_once();
         return;
     }
 }
