@@ -33,6 +33,7 @@
 #define STR_BZZZT_VIBRO      32
 #define STR_BZZZT_BLINK      33
 #define STR_BZZZT_SOUND      34
+#define STR_STOPWATCH_WRITE  35
 
 /*
   Fontname: TechnoDigit14x15
