@@ -7,15 +7,15 @@ char* CaptionsRus[] = {
     "[0]",   "Выкл",      "Вкл",     "Сброс",   "Пуск",      "Стоп",       "Lang / Язык", "Рус",
     "Eng",   "Пакет рун", "База",    "Система", "БЗЗЗТ",     "C3+ B2-",    "ИК приёмник", "Буд",
     "Хрон",  "Тмр",       "Спать",   "Режим",   "Настройка", "Пнд",        "Втр",         "Срд",
-    "Чтр",   "Птн",       "Сбт",     "Вск",     "Приоритет", "Встроенный", "Внешний",     "Равный",
+    "Чтр",   "Птн",       "Сбт",     "Вск",     "Приоритет", "Встроенный", "Системный",   "Равный",
     "Вибро", "Мигалка",   "Пикалка", "Зап"};
 
-char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",     "Stop",
-                       "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal",  "System",
-                       "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "Chrono",    "Timer",
-                       "Sleep",       "Action",  "Set",         "Mon",   "Tue",       "Wed",
-                       "Thr",         "Fri",     "Sat",         "Sun",   "Приоритет", "Встроенный",
-                       "Внешний",     "Равный",  "Vibro",       "Blink", "Sounds",    "Write"};
+char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",    "Stop",
+                       "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal", "System",
+                       "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "Chron",    "Timer",
+                       "Sleep",       "Action",  "Set",         "Mon",   "Tue",      "Wed",
+                       "Thr",         "Fri",     "Sat",         "Sun",   "Priority", "Internal",
+                       "System",      "Equal",   "Vibro",       "Blink", "Sounds",   "Write"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
