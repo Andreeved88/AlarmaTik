@@ -278,10 +278,10 @@ void Draw(Canvas* canvas, void* ctx) {
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_STOPWATCH) { //СЕКУНДОМЕР
 
-        int32_t elapsed_msecs = AppStopwatch.stopped_tick;
+        uint32_t elapsed_msecs = AppStopwatch.stopped_tick;
         if(AppStopwatch.running) elapsed_msecs = furi_get_tick() - AppStopwatch.start_tick;
-        int32_t h = elapsed_msecs / 3600000, m = elapsed_msecs / 60000, s = elapsed_msecs / 1000,
-                ms = elapsed_msecs % 1000;
+        int32_t h = elapsed_msecs / 3600000, m = elapsed_msecs / 60000,
+                s = (elapsed_msecs / 1000) % 60, ms = elapsed_msecs % 1000;
         snprintf(stopwatch_string, 21, "%.2ld:%.2ld:%.2ld", h, m, s);
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
         canvas_draw_str(canvas, 0, TIME_POS_Y, stopwatch_string);
@@ -305,7 +305,7 @@ void Draw(Canvas* canvas, void* ctx) {
             int32_t slot_ms = AppStopwatch.slot[AppStopwatch.curr_slot];
             h = slot_ms / 3600000;
             m = slot_ms / 60000;
-            s = slot_ms / 1000;
+            s = (slot_ms / 1000) % 60;
             ms = slot_ms % 1000;
             snprintf(
                 str_res, 40, "#%.d: %.2ld:%.2ld:%.2ld.%2ld", AppStopwatch.curr_slot, h, m, s, ms);
@@ -391,9 +391,8 @@ void Draw(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 125, y, AlignRight, AlignTop, getStr(STR_GLOBAL_ON));
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_ALARM_EXT) {
-        int x = 0, y = 0, w = 128, h = 64;
-        canvas_draw_rframe(canvas, x, y, w, h, 1);
-        canvas_draw_rframe(canvas, x + 1, (AppAlarm.selectedExt * 13) + y + 1, w - 2, 13, 2);
+        int x = 0, y = 0, w = 128;
+        canvas_draw_rframe(canvas, x, (AppAlarm.selectedExt * 13) + y + 1, w, 13, 2);
         ApplyFont(canvas);
         x += 2;
         y += 4;
@@ -416,9 +415,8 @@ void Draw(Canvas* canvas, void* ctx) {
         if(AppAlarm.selectedExt == 0) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_TIMER_EXT) {
-        int x = 0, y = 0, w = 128, h = 64;
-        canvas_draw_rframe(canvas, x, y, w, h, 1);
-        canvas_draw_rframe(canvas, x + 1, (AppTimer.selectedExt * 13) + y + 1, w - 2, 13, 2);
+        int x = 0, y = 0, w = 128;
+        canvas_draw_rframe(canvas, x, (AppTimer.selectedExt * 13) + y + 1, w, 13, 2);
         ApplyFont(canvas);
         x += 2;
         y += 4;
@@ -438,9 +436,8 @@ void Draw(Canvas* canvas, void* ctx) {
         if(AppTimer.selectedExt == 0) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_BZZZT_SET) {
-        int x = 0, y = 0, w = 128, h = 64;
-        canvas_draw_rframe(canvas, x, y, w, h, 1);
-        canvas_draw_rframe(canvas, x + 1, (AppBzzzt.selected * 13) + y + 1, w - 2, 13, 2);
+        int x = 0, y = 0, w = 128;
+        canvas_draw_rframe(canvas, x, (AppBzzzt.selected * 13) + y + 1, w, 13, 2);
         ApplyFont(canvas);
         x += 2;
         y += 4;
