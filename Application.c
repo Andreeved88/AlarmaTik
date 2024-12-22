@@ -280,7 +280,7 @@ void Draw(Canvas* canvas, void* ctx) {
 
         uint32_t elapsed_msecs = AppStopwatch.stopped_tick;
         if(AppStopwatch.running) elapsed_msecs = furi_get_tick() - AppStopwatch.start_tick;
-        int32_t h = elapsed_msecs / 3600000, m = elapsed_msecs / 60000,
+        int32_t h = elapsed_msecs / 3600000, m = (elapsed_msecs / 60000) % 60,
                 s = (elapsed_msecs / 1000) % 60, ms = elapsed_msecs % 1000;
         snprintf(stopwatch_string, 21, "%.2ld:%.2ld:%.2ld", h, m, s);
         canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
@@ -304,7 +304,7 @@ void Draw(Canvas* canvas, void* ctx) {
             char str_res[40];
             int32_t slot_ms = AppStopwatch.slot[AppStopwatch.curr_slot];
             h = slot_ms / 3600000;
-            m = slot_ms / 60000;
+            m = (slot_ms / 60000) % 60;
             s = (slot_ms / 1000) % 60;
             ms = slot_ms % 1000;
             snprintf(
