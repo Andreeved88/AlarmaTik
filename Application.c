@@ -60,8 +60,7 @@ App_Timer_Data AppTimer = {
 
 App_Config_Data AppConfig = {.selected = 0};
 App_Bzzzt_Data AppBzzzt = {.selected = 0, .v = 1, .s = 1, .b = 1};
-App_Stopwatch_Data AppStopwatch =
-    {.running = 0, .start_tick = 0, .stopped_tick = 0, .slot_id = 0, .curr_slot = 0};
+App_Stopwatch_Data AppStopwatch = {.running = 0, .start_tick = 0, .stopped_tick = 0, .slot_id = 0, .curr_slot = 0};
 char time_string[TIME_STR_SIZE];
 char date_string[TIME_STR_SIZE];
 char timer_string[TIME_STR_SIZE];
@@ -244,14 +243,15 @@ void Draw(Canvas* canvas, void* ctx) {
     snprintf(alarm_string, TIME_STR_SIZE, "%.2d:%.2d", AppAlarm.sH, AppAlarm.sM);
 
     if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { //ЧАСЫ
-        canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
-        canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
+
         if(AppGlobal.dspBrightnessBarFrames) {
             elements_progress_bar_vertical(
                 canvas, 121, 0, 64, (float)(AppGlobal.brightness / 100.f));
             return;
         }
         if(!AppGlobal.show_time_only) {
+            canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
+            canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
             ApplyFont(canvas);
             elements_button_left(canvas, getStr(STR_TIME_ALARM));
             elements_button_center(canvas, getStr(STR_TIME_STOPWATCH));
@@ -274,6 +274,13 @@ void Draw(Canvas* canvas, void* ctx) {
                         canvas, 128, 44, AlignRight, AlignTop, timer_string_trim);
                 }
             }
+        } else {
+            canvas_set_custom_u8g2_font(canvas, bigidig);
+            char out[5];
+            snprintf(out, 5, "%.2d", curr_dt.hour);
+            canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, out);
+            snprintf(out, 5, "%.2d", curr_dt.minute);
+            canvas_draw_str_aligned(canvas, 128, 73, AlignRight, AlignBottom, out);
         }
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_STOPWATCH) { //СЕКУНДОМЕР
