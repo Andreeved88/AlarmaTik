@@ -1,7 +1,7 @@
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
-#define CFG_VERSION           7
+#define CFG_VERSION           8
 #define CLOCK_RFC_DATE_FORMAT "%s %.2d.%.2d.%.4d"
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define TIMER_TIME_FORMAT     "%02ld:%02ld:%02ld"
@@ -60,16 +60,13 @@ typedef struct {
 #define APP_ALARM_STATE_ON       1
 #define APP_ALARM_STATE_SLEEP    2
 #define APP_ALARM_STATE_BZZZ     3
-#define APP_ALARM_PRIOR_INT      0
-#define APP_ALARM_PRIOR_SYS      1
-#define APP_ALARM_PRIOR_INDEPEND 2
 #define BZZZT_FLAG_VIBRO         0x1
 #define BZZZT_FLAG_SOUND         0x2
 #define BZZZT_FLAG_BLINK         0x4
 
 #define APP_CONFIG_LINES    3
 #define APP_TIMER_EXT_LINES 2
-#define APP_ALARM_EXT_LINES 3
+#define APP_ALARM_EXT_LINES 2
 
 typedef struct {
     int selected;

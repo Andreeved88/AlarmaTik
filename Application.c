@@ -7,15 +7,13 @@ char* CaptionsRus[] = {
     "[0]",   "Выкл",      "Вкл",     "Сброс",   "Пуск",      "Стоп",       "Lang / Язык", "Рус",
     "Eng",   "Пакет рун", "База",    "Система", "БЗЗЗТ",     "C3+ B2-",    "ИК приёмник", "Буд",
     "Хрон",  "Тмр",       "Спать",   "Режим",   "Настройка", "Пнд",        "Втр",         "Срд",
-    "Чтр",   "Птн",       "Сбт",     "Вск",     "Приоритет", "Встроенный", "Системный",   "Равный",
-    "Вибро", "Мигалка",   "Пикалка", "Зап"};
+    "Чтр",   "Птн",       "Сбт",     "Вск",     "Вибро", "Мигалка",   "Пикалка", "Зап"};
 
 char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",    "Stop",
                        "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal", "System",
                        "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "Chron",    "Timer",
                        "Sleep",       "Action",  "Set",         "Mon",   "Tue",      "Wed",
-                       "Thr",         "Fri",     "Sat",         "Sun",   "Priority", "Internal",
-                       "System",      "Equal",   "Vibro",       "Blink", "Sounds",   "Write"};
+                       "Thr",         "Fri",     "Sat",         "Sun",   "Vibro",       "Blink", "Sounds",   "Write"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -244,14 +242,15 @@ void Draw(Canvas* canvas, void* ctx) {
     snprintf(alarm_string, TIME_STR_SIZE, "%.2d:%.2d", AppAlarm.sH, AppAlarm.sM);
 
     if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { //ЧАСЫ
-        canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
-        canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
+
         if(AppGlobal.dspBrightnessBarFrames) {
             elements_progress_bar_vertical(
                 canvas, 121, 0, 64, (float)(AppGlobal.brightness / 100.f));
             return;
         }
         if(!AppGlobal.show_time_only) {
+            canvas_set_custom_u8g2_font(canvas, TechnoDigits15);
+            canvas_draw_str(canvas, TIME_POS_X, TIME_POS_Y, time_string);
             ApplyFont(canvas);
             elements_button_left(canvas, getStr(STR_TIME_ALARM));
             elements_button_center(canvas, getStr(STR_TIME_STOPWATCH));
@@ -274,6 +273,13 @@ void Draw(Canvas* canvas, void* ctx) {
                         canvas, 128, 44, AlignRight, AlignTop, timer_string_trim);
                 }
             }
+        } else {
+            canvas_set_custom_u8g2_font(canvas, bigidig);
+            char out[5];
+            snprintf(out, 5, "%.2d", curr_dt.hour);
+            canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, out);
+            snprintf(out, 5, "%.2d", curr_dt.minute);
+            canvas_draw_str_aligned(canvas, 128, 73, AlignRight, AlignBottom, out);
         }
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_STOPWATCH) { //СЕКУНДОМЕР
@@ -398,8 +404,7 @@ void Draw(Canvas* canvas, void* ctx) {
         y += 4;
         canvas_draw_str_aligned(canvas, x, y, AlignLeft, AlignTop, getStr(STR_CONF_TNT_BZZZT));
         canvas_draw_str_aligned(canvas, x, y + 13, AlignLeft, AlignTop, getStr(STR_CONF_TNT_PC3));
-        canvas_draw_str_aligned(canvas, x, y + 26, AlignLeft, AlignTop, getStr(STR_ALARM_PRIOR));
-        int str_id1 = 0, str_id2 = 0, str_id3 = 0;
+        int str_id1 = 0, str_id2 = 0;
         if(AppAlarm.tntMode1 == 0)
             str_id1 = STR_GLOBAL_OFF;
         else
@@ -408,10 +413,8 @@ void Draw(Canvas* canvas, void* ctx) {
             str_id2 = STR_GLOBAL_OFF;
         else
             str_id2 = STR_GLOBAL_ON;
-        str_id3 = STR_ALARM_PRIOR_INT + AppAlarm.prior;
         canvas_draw_str_aligned(canvas, x + w - 5, y, AlignRight, AlignTop, getStr(str_id1));
         canvas_draw_str_aligned(canvas, x + w - 5, y + 13, AlignRight, AlignTop, getStr(str_id2));
-        canvas_draw_str_aligned(canvas, x + w - 5, y + 26, AlignRight, AlignTop, getStr(str_id3));
         if(AppAlarm.selectedExt == 0) elements_button_center(canvas, getStr(STR_TNT_SETTINGS));
     }
     if(AppGlobal.selectedScreen == SCREEN_ID_TIMER_EXT) {
@@ -789,12 +792,6 @@ void AppAlarmKey(int key) {
     if(key == InputKeyOk) {
         if(AppAlarm.state == APP_ALARM_STATE_OFF) {
             AppAlarm.state = APP_ALARM_STATE_ON;
-            if(AppAlarm.prior == 1) {
-                DateTime dt;
-                dt.hour = AppAlarm.sH;
-                dt.minute = AppAlarm.sM;
-                furi_hal_rtc_set_alarm(&dt, 1);
-            }
             return;
         };
 
@@ -802,12 +799,6 @@ void AppAlarmKey(int key) {
             AppAlarm.state = APP_ALARM_STATE_OFF;
             AppAlarm.sH = AppAlarm.sH_old;
             AppAlarm.sM = AppAlarm.sM_old;
-            if(AppAlarm.prior == 1) {
-                DateTime dt;
-                dt.hour = AppAlarm.sH;
-                dt.minute = AppAlarm.sM;
-                furi_hal_rtc_set_alarm(&dt, 0);
-            }
             return;
         };
 
@@ -818,12 +809,6 @@ void AppAlarmKey(int key) {
                 AppAlarm.sM = AppAlarm.sM - 60;
                 AppAlarm.sH++;
                 if(AppAlarm.sH > 23) AppAlarm.sH = 0;
-                if(AppAlarm.prior == 1) {
-                    DateTime dt;
-                    dt.hour = AppAlarm.sH;
-                    dt.minute = AppAlarm.sM;
-                    furi_hal_rtc_set_alarm(&dt, 1);
-                };
                 if(AppAlarm.tntMode1 == 1) SetRing(0);
                 if(AppAlarm.tntMode2 == 1) SetTNTmode2(0);
                 showScreen(SCREEN_ID_TIME);
@@ -1127,11 +1112,6 @@ void LoadParams() {
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
-
-    DateTime dt;
-    AppAlarm.system_state = furi_hal_rtc_get_alarm(&dt);
-
-    if(AppAlarm.prior == 0) furi_hal_rtc_set_alarm(NULL, false);
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
     AppTimer.count = AppTimer.expected_count;
@@ -1164,14 +1144,4 @@ void SaveParams() {
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
-
-    DateTime dt;
-    if(AppAlarm.prior == 0) {
-        if(AppAlarm.state != APP_ALARM_STATE_OFF) {
-            dt.hour = AppAlarm.sH;
-            dt.minute = AppAlarm.sM;
-            furi_hal_rtc_set_alarm(&dt, 1);
-        } else
-            furi_hal_rtc_set_alarm(NULL, AppAlarm.system_state);
-    }
 }
