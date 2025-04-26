@@ -77,9 +77,9 @@ static const NotificationSequence sequence_beep = {
     NULL,
 };
 static NotificationSequence sequence_bzzzt = {
-    &message_vibro_on,
     &message_force_display_brightness_setting_1f,
     &message_display_backlight_on,
+    &message_vibro_on,
     &message_note_c5,
     &message_delay_50,
     &message_sound_off,
@@ -97,7 +97,7 @@ static NotificationSequence sequence_bzzzt = {
     &message_sound_off,
     &message_vibro_off,
     &message_display_backlight_off,
-    &message_delay_500,
+    &message_delay_250,
     NULL,
 };
 
@@ -108,25 +108,33 @@ void notification_BZZZT(int params) {
     bool v = params & BZZZT_FLAG_VIBRO;
     bool b = params & BZZZT_FLAG_BLINK;
     bool s = params & BZZZT_FLAG_SOUND;
-    if(!v)
-        sequence_bzzzt[0] = &message_vibro_off;
-    else
-        sequence_bzzzt[0] = &message_vibro_on;
 
     if(!b) {
-        sequence_bzzzt[1] = &message_delay_1;
-        sequence_bzzzt[2] = &message_delay_1;
-        sequence_bzzzt[19] = &message_delay_1;
+        sequence_bzzzt[0] = &message_delay_10;
+        sequence_bzzzt[1] = &message_delay_10;
+        sequence_bzzzt[19] = &message_delay_10;
     } else {
-        sequence_bzzzt[1] = &message_force_display_brightness_setting_1f;
-        sequence_bzzzt[2] = &message_display_backlight_on;
+        sequence_bzzzt[0] = &message_force_display_brightness_setting_1f;
+        sequence_bzzzt[1] = &message_display_backlight_on;
         sequence_bzzzt[19] = &message_display_backlight_off;
+    }    
+    
+    if(!v){
+        sequence_bzzzt[2] = &message_delay_10;
+        sequence_bzzzt[18] = &message_delay_10;
     }
+    else {
+        sequence_bzzzt[2] = &message_vibro_on;
+        sequence_bzzzt[18] = &message_vibro_off;
+    }
+
     if(!s) {
         sequence_bzzzt[3] = &message_delay_500;
-        sequence_bzzzt[4] = &message_vibro_off;
-        sequence_bzzzt[5] = &message_display_backlight_off;
-        sequence_bzzzt[6] = &message_delay_500;
+        if(v) sequence_bzzzt[4] = &message_vibro_off;
+        else sequence_bzzzt[4] = &message_delay_10;
+        if(b) sequence_bzzzt[5] = &message_display_backlight_off;
+        else sequence_bzzzt[5] = &message_delay_10;
+        sequence_bzzzt[6] =  &message_delay_250;
         sequence_bzzzt[7] = NULL;
     } else {
         sequence_bzzzt[3] = &message_note_c5;
