@@ -29,7 +29,6 @@ typedef struct {
     int brightness;
     int dspBrightnessBarFrames;
     int dspBrightnessBarDisplayFrames;
-    bool led;
     bool ringing;
     bool irRxOn;
     bool irRecieved;

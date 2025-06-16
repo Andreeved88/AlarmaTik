@@ -97,15 +97,14 @@ void SetLED(int r, int g, int b, float br) {
 }
 
 void ResetLED() {
-    FApp->Notificator->settings.led_brightness = FApp->SystemLedBrightness;
     notification_message(FApp->Notificator, &sequence_reset_rgb);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
 }
+
 /*brightness in % (0-100)*/
 void SetScreenBacklightBrightness(int brightness) {
-    FApp->Notificator->settings.display_brightness = (float)(brightness / 100.f);
-    notification_message(FApp->Notificator, &sequence_display_backlight_on);
+    FApp->Notificator->settings.display_brightness = ((float)brightness )/ 100.f;
+  if (brightness)  notification_message(FApp->Notificator, &sequence_display_backlight_on);
+ else notification_message(FApp->Notificator, &sequence_display_backlight_off);
 }
 
 void UpdateView() {

@@ -29,6 +29,7 @@ typedef struct F0App F0App;
 
 void UpdateView();
 void SetLED(int r, int g, int b, float br);
+void SetRLED(float br);
 void ResetLED();
 void SetScreenBacklightBrightness(int brightness);
 bool PinRead(GpioPin pin);

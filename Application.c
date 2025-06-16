@@ -3,17 +3,19 @@
 #include "F0BigData.h"
 extern F0App* FApp;
 
-char* CaptionsRus[] = {
-    "[0]",   "Выкл",      "Вкл",     "Сброс",   "Пуск",      "Стоп",       "Lang / Язык", "Рус",
-    "Eng",   "Пакет рун", "База",    "Система", "БЗЗЗТ",     "C3+ B2-",    "ИК приёмник", "Буд",
-    "Хрон",  "Тмр",       "Спать",   "Режим",   "Настройка", "Пнд",        "Втр",         "Срд",
-    "Чтр",   "Птн",       "Сбт",     "Вск",     "Вибро", "Мигалка",   "Пикалка", "Зап"};
+char* CaptionsRus[] = {"[0]",         "Выкл",    "Вкл",         "Сброс",     "Пуск",  "Стоп",
+                       "Lang / Язык", "Рус",     "Eng",         "Пакет рун", "База",  "Система",
+                       "БЗЗЗТ",       "C3+ B2-", "ИК приёмник", "Буд",       "Хрон",  "Тмр",
+                       "Спать",       "Режим",   "Настройка",   "Пнд",       "Втр",   "Срд",
+                       "Чтр",         "Птн",     "Сбт",         "Вск",       "Вибро", "Мигалка",
+                       "Пикалка",     "Зап"};
 
 char* CaptionsEng[] = {"[0]",         "Off",     "On",          "Reset", "Start",    "Stop",
                        "Lang / Язык", "Рус",     "Eng",         "Font",  "Internal", "System",
                        "BZZZT",       "C3+ B2-", "IR reciever", "Alarm", "Chron",    "Timer",
                        "Sleep",       "Action",  "Set",         "Mon",   "Tue",      "Wed",
-                       "Thr",         "Fri",     "Sat",         "Sun",   "Vibro",       "Blink", "Sounds",   "Write"};
+                       "Thr",         "Fri",     "Sat",         "Sun",   "Vibro",    "Blink",
+                       "Sounds",      "Write"};
 
 App_Global_Data AppGlobal = {
     .selectedScreen = SCREEN_ID_TIME,
@@ -21,7 +23,6 @@ App_Global_Data AppGlobal = {
     .brightness = 10,
     .dspBrightnessBarDisplayFrames = 2,
     .dspBrightnessBarFrames = 0,
-    .led = 0,
     .ringing = 0,
     .irRxOn = 0,
     .irRecieved = 0,
@@ -70,7 +71,6 @@ DateTime curr_dt;
 InfraredWorker* worker;
 
 static const NotificationSequence sequence_beep = {
-    &message_blue_255,
     &message_note_c8,
     &message_delay_50,
     &message_sound_off,
@@ -117,24 +117,27 @@ void notification_BZZZT(int params) {
         sequence_bzzzt[0] = &message_force_display_brightness_setting_1f;
         sequence_bzzzt[1] = &message_display_backlight_on;
         sequence_bzzzt[19] = &message_display_backlight_off;
-    }    
-    
-    if(!v){
+    }
+
+    if(!v) {
         sequence_bzzzt[2] = &message_delay_10;
         sequence_bzzzt[18] = &message_delay_10;
-    }
-    else {
+    } else {
         sequence_bzzzt[2] = &message_vibro_on;
         sequence_bzzzt[18] = &message_vibro_off;
     }
 
     if(!s) {
         sequence_bzzzt[3] = &message_delay_500;
-        if(v) sequence_bzzzt[4] = &message_vibro_off;
-        else sequence_bzzzt[4] = &message_delay_10;
-        if(b) sequence_bzzzt[5] = &message_display_backlight_off;
-        else sequence_bzzzt[5] = &message_delay_10;
-        sequence_bzzzt[6] =  &message_delay_250;
+        if(v)
+            sequence_bzzzt[4] = &message_vibro_off;
+        else
+            sequence_bzzzt[4] = &message_delay_10;
+        if(b)
+            sequence_bzzzt[5] = &message_display_backlight_off;
+        else
+            sequence_bzzzt[5] = &message_delay_10;
+        sequence_bzzzt[6] = &message_delay_250;
         sequence_bzzzt[7] = NULL;
     } else {
         sequence_bzzzt[3] = &message_note_c5;
@@ -207,19 +210,6 @@ int AppDeinit() {
     return 0;
 }
 
-void elements_progress_bar_vertical(Canvas* canvas, int x, int y, int height, float progress) {
-    furi_assert(canvas);
-    furi_assert((progress >= 0) && (progress <= 1.0));
-    uint8_t width = 7;
-    uint8_t progress_length = roundf((1.f - progress) * (height - 2));
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_box(canvas, x + 1, y + 1, width - 2, height - 2);
-    canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, x + 1, y + 1, width - 2, progress_length);
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_rframe(canvas, x, y, width, height, 2);
-}
-
 void Draw(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
     furi_hal_rtc_get_datetime(&curr_dt);
@@ -252,8 +242,10 @@ void Draw(Canvas* canvas, void* ctx) {
     if(AppGlobal.selectedScreen == SCREEN_ID_TIME) { //ЧАСЫ
 
         if(AppGlobal.dspBrightnessBarFrames) {
-            elements_progress_bar_vertical(
-                canvas, 121, 0, 64, (float)(AppGlobal.brightness / 100.f));
+            canvas_set_custom_u8g2_font(canvas, bigidig);
+            char out[5];
+            snprintf(out, 5, "%.2d%%",AppGlobal.brightness );
+            canvas_draw_str_aligned(canvas, 120, 20, AlignRight, AlignTop, out);
             return;
         }
         if(!AppGlobal.show_time_only) {
@@ -633,32 +625,15 @@ void AppStopwatchKey(int key) {
 void AppTimeKey(int key) {
     if(key == InputKeyUp) {
         AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
-        if(AppGlobal.brightness < 100) {
-            if(AppGlobal.led) {
-                AppGlobal.led = 0;
-                ResetLED();
-            }
-            AppGlobal.brightness += 10;
-        }
-        if(AppGlobal.brightness > 100) AppGlobal.brightness = 100;
+        if(AppGlobal.brightness < 96) AppGlobal.brightness += 5;
+        else  AppGlobal.brightness = 100; 
         SetScreenBacklightBrightness(AppGlobal.brightness);
         return;
     }
     if(key == InputKeyDown) {
         AppGlobal.dspBrightnessBarFrames = AppGlobal.dspBrightnessBarDisplayFrames;
-        if(AppGlobal.brightness > 0) {
-            AppGlobal.brightness -= 10;
-            if(AppGlobal.brightness == 0) {
-                AppGlobal.led = true;
-                SetLED(255, 0, 0, 0.1);
-            }
-        } else if(AppGlobal.brightness == 0) {
-            AppGlobal.led = !AppGlobal.led;
-            if(AppGlobal.led)
-                SetLED(255, 0, 0, 0.1);
-            else
-                ResetLED();
-        }
+        if(AppGlobal.brightness > 4) AppGlobal.brightness -= 5;
+        else  AppGlobal.brightness = 0;       
         SetScreenBacklightBrightness(AppGlobal.brightness);
         return;
     }
@@ -800,6 +775,7 @@ void AppAlarmKey(int key) {
     if(key == InputKeyOk) {
         if(AppAlarm.state == APP_ALARM_STATE_OFF) {
             AppAlarm.state = APP_ALARM_STATE_ON;
+            SetLED(255,0,0,0.1);
             return;
         };
 
@@ -807,6 +783,7 @@ void AppAlarmKey(int key) {
             AppAlarm.state = APP_ALARM_STATE_OFF;
             AppAlarm.sH = AppAlarm.sH_old;
             AppAlarm.sM = AppAlarm.sM_old;
+            ResetLED();
             return;
         };
 
@@ -1021,6 +998,7 @@ void AppBzzztKey(int key) {
 void OnTimerTick() {
     bool bzzzt_busy = 0;
     SetScreenBacklightBrightness(AppGlobal.brightness);
+
     if(AppGlobal.dspBrightnessBarFrames > 0) AppGlobal.dspBrightnessBarFrames--;
     if(AppGlobal.ringing) {
         if(AppGlobal.irRecieved) {
@@ -1078,7 +1056,8 @@ void SetTNTmode2(int state) {
     } else {
         furi_hal_gpio_write(&gpio_ext_pc3, 0);
         furi_hal_gpio_write(&gpio_ext_pb2, 1);
-        ResetLED();
+        if(AppAlarm.state) SetLED(255,0,0,0.1);
+        else ResetLED();
     }
 }
 
@@ -1123,6 +1102,7 @@ void LoadParams() {
     AppAlarm.sH_old = AppAlarm.sH;
     AppAlarm.sM_old = AppAlarm.sM;
     AppTimer.count = AppTimer.expected_count;
+    if(AppAlarm.state) SetLED(255,0,0,0.1);
 }
 
 void SaveParams() {
