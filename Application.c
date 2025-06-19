@@ -43,8 +43,8 @@ App_Alarm_Data AppAlarm = {
     .tntMode1 = 1,
     .tntMode1_param = 7,
     .tntMode2 = 0,
-    .tntMode2_param = 0,
-    .prior = 0};
+    .tntMode2_param = 0};
+//.prior = 0};
 
 App_Timer_Data AppTimer = {
     .selected = 1,
@@ -97,7 +97,6 @@ static NotificationSequence sequence_bzzzt = {
     &message_sound_off,
     &message_vibro_off,
     &message_display_backlight_off,
-    &message_delay_250,
     NULL,
 };
 
@@ -110,9 +109,9 @@ void notification_BZZZT(int params) {
     bool s = params & BZZZT_FLAG_SOUND;
 
     if(!b) {
-        sequence_bzzzt[0] = &message_delay_10;
-        sequence_bzzzt[1] = &message_delay_10;
-        sequence_bzzzt[19] = &message_delay_10;
+        sequence_bzzzt[0] = &message_delay_1;
+        sequence_bzzzt[1] = &message_delay_1;
+        sequence_bzzzt[19] = &message_delay_1;
     } else {
         sequence_bzzzt[0] = &message_force_display_brightness_setting_1f;
         sequence_bzzzt[1] = &message_display_backlight_on;
@@ -120,25 +119,20 @@ void notification_BZZZT(int params) {
     }
 
     if(!v) {
-        sequence_bzzzt[2] = &message_delay_10;
-        sequence_bzzzt[18] = &message_delay_10;
+        sequence_bzzzt[2] = &message_delay_1;
+        sequence_bzzzt[18] = &message_delay_1;
     } else {
         sequence_bzzzt[2] = &message_vibro_on;
         sequence_bzzzt[18] = &message_vibro_off;
     }
 
     if(!s) {
-        sequence_bzzzt[3] = &message_delay_500;
-        if(v)
-            sequence_bzzzt[4] = &message_vibro_off;
-        else
-            sequence_bzzzt[4] = &message_delay_10;
-        if(b)
-            sequence_bzzzt[5] = &message_display_backlight_off;
-        else
-            sequence_bzzzt[5] = &message_delay_10;
-        sequence_bzzzt[6] = &message_delay_250;
-        sequence_bzzzt[7] = NULL;
+                sequence_bzzzt[3] = &message_delay_500;
+        if(v)   sequence_bzzzt[4] = &message_vibro_off;
+        else    sequence_bzzzt[4] = &message_delay_1;
+        if(b)   sequence_bzzzt[5] = &message_display_backlight_off;
+        else    sequence_bzzzt[5] = &message_delay_1;
+        sequence_bzzzt[6] = NULL;
     } else {
         sequence_bzzzt[3] = &message_note_c5;
         sequence_bzzzt[4] = &message_delay_50;
@@ -158,10 +152,8 @@ void ApplyFont(Canvas* c) {
     if(AppGlobal.font == FONT_ID_EXT) canvas_set_font(c, FontSecondary);
 }
 char* getStr(int id) {
-    if(AppGlobal.lang == 0)
-        return CaptionsEng[id];
-    else
-        return CaptionsRus[id];
+    if(!AppGlobal.lang) return CaptionsEng[id];
+    return CaptionsRus[id];
 }
 
 static void ir_received_callback(void* ctx, InfraredWorkerSignal* signal) {
@@ -833,17 +825,11 @@ void AppAlarmExtKey(int key) {
     if(key == InputKeyLeft) {
         if(AppAlarm.selectedExt == 0) AppAlarm.tntMode1 = 0; //bzzzt
         if(AppAlarm.selectedExt == 1) AppAlarm.tntMode2 = 0; //pin7
-        if(AppAlarm.selectedExt == 2) {
-            if(AppAlarm.prior > 0) AppAlarm.prior--;
-        }
         return;
     }
     if(key == InputKeyRight) {
         if(AppAlarm.selectedExt == 0) AppAlarm.tntMode1 = 1; //bzzzt
         if(AppAlarm.selectedExt == 1) AppAlarm.tntMode2 = 1; //pin7
-        if(AppAlarm.selectedExt == 2) {
-            if(AppAlarm.prior < 2) AppAlarm.prior++;
-        }
         return;
     }
     if(key == InputKeyOk) {
@@ -1011,18 +997,13 @@ void OnTimerTick() {
     if(AppAlarm.state != APP_ALARM_STATE_OFF) {
         if(AppAlarm.sH == curr_dt.hour && AppAlarm.sM == curr_dt.minute && !curr_dt.second) {
             AppAlarm.state = APP_ALARM_STATE_BZZZ;
-            if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) {
-                SetRing(1);
-                bzzzt_busy = 1;
-                notification_BZZZT(AppAlarm.tntMode1_param);
-            }
             if(AppAlarm.tntMode2 == 1) SetTNTmode2(1);
         }
     }
 
     if(AppAlarm.state == APP_ALARM_STATE_BZZZ) {
         showScreen(SCREEN_ID_ALARM);
-        if(AppAlarm.tntMode1 == 1 && AppAlarm.prior != 1) {
+        if(AppAlarm.tntMode1 == 1) {
             bzzzt_busy = 1;
             notification_BZZZT(AppAlarm.tntMode1_param);
         }
@@ -1082,7 +1063,6 @@ void LoadParams() {
             storage_file_read(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
             storage_file_read(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
             storage_file_read(file, &AppAlarm.state, sizeof(AppAlarm.state));
-            storage_file_read(file, &AppAlarm.prior, sizeof(AppAlarm.prior));
             storage_file_read(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1));
             storage_file_read(file, &AppAlarm.tntMode1_param, sizeof(AppAlarm.tntMode1_param));
             storage_file_read(file, &AppAlarm.tntMode2, sizeof(AppAlarm.tntMode2));
@@ -1118,7 +1098,6 @@ void SaveParams() {
         storage_file_write(file, &AppAlarm.sH, sizeof(AppAlarm.sH));
         storage_file_write(file, &AppAlarm.sM, sizeof(AppAlarm.sM));
         storage_file_write(file, &AppAlarm.state, sizeof(AppAlarm.state));
-        storage_file_write(file, &AppAlarm.prior, sizeof(AppAlarm.prior));
         storage_file_write(file, &AppAlarm.tntMode1, sizeof(AppAlarm.tntMode1));
         storage_file_write(file, &AppAlarm.tntMode1_param, sizeof(AppAlarm.tntMode1_param));
         storage_file_write(file, &AppAlarm.tntMode2, sizeof(AppAlarm.tntMode2));

@@ -1,7 +1,7 @@
 #pragma once
 #define SAVING_DIRECTORY      STORAGE_APP_DATA_PATH_PREFIX
 #define SAVING_FILENAME       SAVING_DIRECTORY "/alarmatik.cfg"
-#define CFG_VERSION           8
+#define CFG_VERSION           9
 #define CLOCK_RFC_DATE_FORMAT "%s %.2d.%.2d.%.4d"
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define TIMER_TIME_FORMAT     "%02ld:%02ld:%02ld"
@@ -91,7 +91,6 @@ typedef struct {
     int tntMode1_param;
     int tntMode2;
     int tntMode2_param;
-    int prior;
 } App_Alarm_Data;
 
 typedef struct {
